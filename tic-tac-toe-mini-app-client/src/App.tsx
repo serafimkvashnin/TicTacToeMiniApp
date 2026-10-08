@@ -1,21 +1,18 @@
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
-import { MainScene } from './game/MainScene'
-
-function getUserName(): string {
-  const user = window.Telegram?.WebApp?.initDataUnsafe?.user
-  if (!user) return 'Гость'
-  return user.username ? `@${user.username}` : user.first_name
-}
+import { MainScene, COLORS } from './game/MainScene'
+import { getUserName, setChromeColors } from './telegram'
 
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    setChromeColors(COLORS.header, COLORS.background)
+
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: containerRef.current!,
-      backgroundColor: '#2d6cdf',
+      backgroundColor: COLORS.background,
       scale: {
         mode: Phaser.Scale.RESIZE,
         width: window.innerWidth,
