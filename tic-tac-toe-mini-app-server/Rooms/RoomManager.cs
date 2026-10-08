@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
 
 namespace TicTacToe.Server.Rooms;
 
@@ -6,8 +7,10 @@ namespace TicTacToe.Server.Rooms;
 /// Комнаты в памяти процесса. Первый игрок в списке — хост:
 /// если хост выходит, хостом становится оставшийся игрок.
 /// </summary>
-public sealed class RoomManager
+public sealed class RoomManager(IOptions<RoomOptions> options)
 {
+    private readonly RoomOptions _options = options.Value;
+
     public const int Capacity = 2;
 
     // Без похожих символов (0/O, 1/I/L), чтобы код было легко продиктовать
@@ -38,7 +41,7 @@ public sealed class RoomManager
             if (!_rooms.TryGetValue(code, out var players))
                 return new JoinResult(JoinStatus.NotFound);
 
-            if (players.Any(p => p.User.Id == player.User.Id))
+            if (!_options.AllowSelfPlay && players.Any(p => p.User.Id == player.User.Id))
                 return new JoinResult(JoinStatus.AlreadyInRoom);
 
             if (players.Count >= Capacity)

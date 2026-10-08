@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection(TelegramOptions.SectionName));
 builder.Services.AddSingleton<TelegramAuthenticator>();
+builder.Services.Configure<RoomOptions>(builder.Configuration.GetSection(RoomOptions.SectionName));
 builder.Services.AddSingleton<RoomManager>();
 builder.Services.AddSignalR();
 

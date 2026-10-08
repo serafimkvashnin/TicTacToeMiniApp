@@ -21,8 +21,9 @@ export function RoomView({ room, busy, onLeave }: Props) {
       <div className="room-code">{room.code}</div>
 
       <ul className="players">
-        {room.players.map((player) => (
-          <li key={player.id} className="player">
+        {/* ключ по месту, а не по id: один пользователь может занять оба места */}
+        {room.players.map((player, seat) => (
+          <li key={seat} className="player">
             <span className="player-name">{player.name}</span>
             {player.username && <span className="player-username">@{player.username}</span>}
             {player.isHost && <span className="badge">хост</span>}
