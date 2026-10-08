@@ -6,6 +6,8 @@ import { Lobby } from './Lobby'
 import { RoomView } from './RoomView'
 import { SearchingView } from './SearchingView'
 
+const TOAST_DURATION_MS = 3500
+
 export function Screens() {
   const { status, room, notice } = useSyncExternalStore(game.subscribe, game.getState)
   const [busy, setBusy] = useState(false)
@@ -28,6 +30,19 @@ export function Screens() {
   useEffect(() => {
     game.connect()
   }, [])
+
+  // Уведомления и ошибки — временные подсказки, а не состояние экрана: скрываем сами
+  useEffect(() => {
+    if (!notice) return
+    const timer = setTimeout(game.dismissNotice, TOAST_DURATION_MS)
+    return () => clearTimeout(timer)
+  }, [notice])
+
+  useEffect(() => {
+    if (!error) return
+    const timer = setTimeout(() => setError(null), TOAST_DURATION_MS)
+    return () => clearTimeout(timer)
+  }, [error])
 
   // Открыли по ссылке-приглашению: сразу заходим в комнату
   useEffect(() => {

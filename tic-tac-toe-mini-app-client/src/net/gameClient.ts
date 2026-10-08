@@ -90,8 +90,8 @@ function applyRoom(room: Room) {
 connection.on('RoomUpdated', applyRoom)
 connection.onreconnecting(() => setState({ status: 'connecting' }))
 // После переподключения это новое соединение: сервер уже вывел нас из комнаты
-connection.onreconnected(() => setState({ status: 'connected', room: null }))
-connection.onclose(() => setState({ status: 'disconnected', room: null }))
+connection.onreconnected(() => setState({ status: 'connected', room: null, notice: null }))
+connection.onclose(() => setState({ status: 'disconnected', room: null, notice: null }))
 
 export async function connect() {
   if (connection.state !== signalR.HubConnectionState.Disconnected) return
