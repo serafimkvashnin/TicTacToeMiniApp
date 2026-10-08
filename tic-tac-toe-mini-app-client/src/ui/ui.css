@@ -282,13 +282,16 @@ body {
 .board {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* фиксированные треки: размер клетки не зависит от того, есть ли в ней знак */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
   aspect-ratio: 1;
 }
 
 .cell {
+  position: relative;
   appearance: none;
   border: none;
   border-radius: 14px;
@@ -312,6 +315,8 @@ body {
 }
 
 .cell .mark {
+  position: absolute;
+  inset: 10%;
   width: 80%;
   height: 80%;
 }
