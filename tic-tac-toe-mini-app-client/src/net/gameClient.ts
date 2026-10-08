@@ -82,7 +82,9 @@ function applyRoom(room: Room) {
 
   const opponentLeft = current?.code === room.code && room.players.length < current.players.length
   const leftNotice = room.isPublic ? 'Соперник вышел — ищем нового' : 'Соперник покинул комнату'
-  setState({ room, notice: opponentLeft ? leftNotice : state.notice })
+  // Новый соперник зашёл — уведомление об ушедшем больше не актуально
+  const notice = opponentLeft ? leftNotice : room.game ? null : state.notice
+  setState({ room, notice })
 }
 
 connection.on('RoomUpdated', applyRoom)

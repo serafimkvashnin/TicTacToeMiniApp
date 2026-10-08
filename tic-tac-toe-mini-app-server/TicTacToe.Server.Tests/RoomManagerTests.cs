@@ -153,6 +153,20 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void Public_room_cannot_be_joined_by_code()
+    {
+        var manager = CreateManager();
+        var code = manager.QuickPlay(Alice).For(Alice.ConnectionId).Code;
+
+        Assert.Equal("Комната не найдена", Assert.Throws<RoomException>(() => manager.Join(code, Bob)).Message);
+
+        // И после ухода соперника тоже: освободившееся место достаётся только через подбор
+        manager.QuickPlay(Bob);
+        manager.Leave(Bob.ConnectionId);
+        Assert.Throws<RoomException>(() => manager.Join(code, Carol));
+    }
+
+    [Fact]
     public void Quick_play_ignores_private_rooms()
     {
         var manager = CreateManager();

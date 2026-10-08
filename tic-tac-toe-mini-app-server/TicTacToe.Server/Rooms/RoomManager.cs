@@ -37,7 +37,8 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
 
         lock (_lock)
         {
-            if (!_rooms.TryGetValue(code, out var room))
+            // В публичные комнаты попадают только через подбор: по коду их как будто нет
+            if (!_rooms.TryGetValue(code, out var room) || room.IsPublic)
                 throw new RoomException("Комната не найдена");
 
             if (!CanMatch(room, player))
