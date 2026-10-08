@@ -9,5 +9,10 @@ export default defineConfig({
     host: true,
     // разрешаем доступ через туннели (ngrok, cloudflared и т.п.)
     allowedHosts: true,
+    // в dev клиент ходит на тот же origin, а Vite пробрасывает хаб на локальный сервер,
+    // поэтому для теста в Telegram хватает одного туннеля на Vite
+    proxy: {
+      '/hubs': { target: 'http://localhost:5080', ws: true },
+    },
   },
 })

@@ -6,7 +6,7 @@ export const COLORS = {
   header: '#1b4fae',
 }
 
-const HEADER_HEIGHT = 48 // высота полосы с ником под зоной Telegram
+export const HEADER_HEIGHT = 48 // высота полосы с ником под зоной Telegram
 const AMPLITUDE = 80
 const SPEED = 150 // пикселей в секунду по горизонтали
 const WAVELENGTH = 300 // пикселей на один период синусоиды

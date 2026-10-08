@@ -1,13 +1,17 @@
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
-import { MainScene, COLORS } from './game/MainScene'
+import { MainScene, COLORS, HEADER_HEIGHT } from './game/MainScene'
 import { getUserName, setChromeColors } from './telegram'
+import { Overlay } from './ui/Overlay'
+import './ui/ui.css'
 
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setChromeColors(COLORS.header, COLORS.background)
+    // React-интерфейс начинается под полосой с ником, которую рисует сцена
+    document.documentElement.style.setProperty('--hud-height', `${HEADER_HEIGHT}px`)
 
     const game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -25,5 +29,10 @@ export default function App() {
     return () => game.destroy(true)
   }, [])
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <Overlay />
+    </div>
+  )
 }
