@@ -138,6 +138,79 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void Quick_play_creates_public_room_then_matches_next_player()
+    {
+        var manager = CreateManager();
+
+        var waiting = manager.QuickPlay(Alice).For(Alice.ConnectionId);
+        Assert.True(waiting.IsPublic);
+        Assert.Null(waiting.Game);
+
+        var matched = manager.QuickPlay(Bob).For(Bob.ConnectionId);
+        Assert.Equal(waiting.Code, matched.Code);
+        Assert.NotNull(matched.Game);
+        Assert.Equal(2, matched.Players.Count);
+    }
+
+    [Fact]
+    public void Quick_play_ignores_private_rooms()
+    {
+        var manager = CreateManager();
+        var privateCode = manager.Create(Alice).For(Alice.ConnectionId).Code;
+
+        var room = manager.QuickPlay(Bob).For(Bob.ConnectionId);
+
+        Assert.NotEqual(privateCode, room.Code);
+        Assert.True(room.IsPublic);
+        Assert.Null(room.Game);
+    }
+
+    [Fact]
+    public void Quick_play_matches_longest_waiting_room_first()
+    {
+        var manager = CreateManager();
+        var dave = new Player("conn-dave", new TelegramUser(4, "Dave", null, null));
+
+        var aliceRoom = manager.QuickPlay(Alice).For(Alice.ConnectionId).Code;
+        manager.QuickPlay(Bob); // Bob садится к Alice
+        var carolRoom = manager.QuickPlay(Carol).For(Carol.ConnectionId).Code; // Carol ждёт
+        manager.Leave(Bob.ConnectionId); // теперь Alice тоже ждёт, но позже Carol
+
+        Assert.NotEqual(aliceRoom, carolRoom);
+        Assert.Equal(carolRoom, manager.QuickPlay(dave).For(dave.ConnectionId).Code);
+    }
+
+    [Fact]
+    public void Quick_play_does_not_match_user_with_self_unless_allowed()
+    {
+        var aliceAgain = Alice with { ConnectionId = "conn-alice-2" };
+
+        var strict = CreateManager();
+        var first = strict.QuickPlay(Alice).For(Alice.ConnectionId).Code;
+        Assert.NotEqual(first, strict.QuickPlay(aliceAgain).For(aliceAgain.ConnectionId).Code);
+
+        var relaxed = CreateManager(allowSelfPlay: true);
+        var own = relaxed.QuickPlay(Alice).For(Alice.ConnectionId).Code;
+        var self = relaxed.QuickPlay(aliceAgain).For(aliceAgain.ConnectionId);
+        Assert.Equal(own, self.Code);
+        Assert.NotNull(self.Game);
+    }
+
+    [Fact]
+    public void Public_room_becomes_searchable_again_when_opponent_leaves()
+    {
+        var manager = CreateManager();
+        var code = manager.QuickPlay(Alice).For(Alice.ConnectionId).Code;
+        manager.QuickPlay(Bob);
+
+        manager.Leave(Bob.ConnectionId);
+        var withCarol = manager.QuickPlay(Carol).For(Carol.ConnectionId);
+
+        Assert.Equal(code, withCarol.Code);
+        Assert.NotNull(withCarol.Game);
+    }
+
+    [Fact]
     public void Last_player_leaving_deletes_room()
     {
         var manager = CreateManager();

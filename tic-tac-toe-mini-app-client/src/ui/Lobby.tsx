@@ -2,11 +2,12 @@ import { useState, type FormEvent } from 'react'
 
 type Props = {
   busy: boolean
+  onQuickPlay: () => void
   onCreate: () => void
   onJoin: (code: string) => void
 }
 
-export function Lobby({ busy, onCreate, onJoin }: Props) {
+export function Lobby({ busy, onQuickPlay, onCreate, onJoin }: Props) {
   const [code, setCode] = useState('')
 
   const submit = (e: FormEvent) => {
@@ -18,11 +19,15 @@ export function Lobby({ busy, onCreate, onJoin }: Props) {
     <div className="panel">
       <h2>Крестики-нолики</h2>
 
-      <button className="button primary" disabled={busy} onClick={onCreate}>
-        Создать комнату
+      <button className="button primary" disabled={busy} onClick={onQuickPlay}>
+        Найти соперника
       </button>
 
-      <div className="divider">или</div>
+      <div className="divider">или сыграть с другом</div>
+
+      <button className="button" disabled={busy} onClick={onCreate}>
+        Создать комнату
+      </button>
 
       <form className="join-form" onSubmit={submit}>
         <input

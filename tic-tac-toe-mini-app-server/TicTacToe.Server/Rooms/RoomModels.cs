@@ -16,9 +16,11 @@ public sealed record GameDto(
 
 /// <param name="YourSeat">Место получателя в списке игроков: состояние у каждого подключения своё.</param>
 /// <param name="Version">Растёт с каждым изменением, чтобы клиент мог отбросить устаревшее состояние.</param>
+/// <param name="IsPublic">Комната из подбора случайного соперника.</param>
 public sealed record RoomDto(
     string Code,
     int Capacity,
+    bool IsPublic,
     IReadOnlyList<PlayerDto> Players,
     int YourSeat,
     int Version,

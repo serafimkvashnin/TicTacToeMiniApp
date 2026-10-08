@@ -4,6 +4,7 @@ import { getStartParam } from '../telegram'
 import { GameView } from './GameView'
 import { Lobby } from './Lobby'
 import { RoomView } from './RoomView'
+import { SearchingView } from './SearchingView'
 
 export function Screens() {
   const { status, room, notice } = useSyncExternalStore(game.subscribe, game.getState)
@@ -52,10 +53,21 @@ export function Screens() {
       )}
 
       {status === 'connected' && !room && (
-        <Lobby busy={busy} onCreate={() => run(game.createRoom)} onJoin={(code) => run(() => game.joinRoom(code))} />
+        <Lobby
+          busy={busy}
+          onQuickPlay={() => run(game.quickPlay)}
+          onCreate={() => run(game.createRoom)}
+          onJoin={(code) => run(() => game.joinRoom(code))}
+        />
       )}
 
-      {status === 'connected' && room && !room.game && <RoomView room={room} busy={busy} onLeave={leave} />}
+      {status === 'connected' && room && !room.game && room.isPublic && (
+        <SearchingView busy={busy} onCancel={leave} />
+      )}
+
+      {status === 'connected' && room && !room.game && !room.isPublic && (
+        <RoomView room={room} busy={busy} onLeave={leave} />
+      )}
 
       {status === 'connected' && room?.game && (
         <GameView

@@ -49,6 +49,12 @@ public sealed class GameHub(RoomManager rooms, TelegramAuthenticator authenticat
         return await Apply(() => rooms.Join(code, CurrentPlayer));
     }
 
+    public async Task<RoomDto> QuickPlay()
+    {
+        await LeaveCurrentRoom();
+        return await Apply(() => rooms.QuickPlay(CurrentPlayer));
+    }
+
     public Task<RoomDto> MakeMove(int cell) => Apply(() => rooms.MakeMove(Context.ConnectionId, cell));
 
     public Task<RoomDto> Rematch() => Apply(() => rooms.Rematch(Context.ConnectionId));

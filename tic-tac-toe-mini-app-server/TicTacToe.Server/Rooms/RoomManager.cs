@@ -19,15 +19,15 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
     private readonly Dictionary<string, Room> _rooms = new();
     private readonly Dictionary<string, Room> _roomByConnection = new();
 
+    // Порядок постановки в ожидание: счётчик вместо времени, чтобы порядок был строгим
+    private long _waitingCounter;
+
+    /// <summary>Приватная комната, в которую заходят только по коду.</summary>
     public RoomUpdate Create(Player host)
     {
         lock (_lock)
         {
-            var room = new Room(GenerateCode());
-            room.Players.Add(host);
-            _rooms[room.Code] = room;
-            _roomByConnection[host.ConnectionId] = room;
-            return room.Commit();
+            return CreateRoom(host, isPublic: false).Commit();
         }
     }
 
@@ -40,18 +40,33 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
             if (!_rooms.TryGetValue(code, out var room))
                 throw new RoomException("Комната не найдена");
 
-            if (!_options.AllowSelfPlay && room.Players.Any(p => p.User.Id == player.User.Id))
+            if (!CanMatch(room, player))
                 throw new RoomException("Вы уже в этой комнате");
 
             if (room.IsFull)
                 throw new RoomException("Комната уже заполнена");
 
-            room.Players.Add(player);
-            _roomByConnection[player.ConnectionId] = room;
+            AddPlayer(room, player);
+            return room.Commit();
+        }
+    }
 
-            if (room.IsFull)
-                room.StartGame(xSeat: Random.Shared.Next(Room.Capacity));
+    /// <summary>
+    /// Случайный соперник: садимся в публичную комнату, где дольше всех ждут игрока,
+    /// а если таких нет — создаём свою и ждём, пока кто-то зайдёт так же.
+    /// </summary>
+    public RoomUpdate QuickPlay(Player player)
+    {
+        lock (_lock)
+        {
+            var room = _rooms.Values
+                .Where(r => r.IsPublic && !r.IsFull && CanMatch(r, player))
+                .MinBy(r => r.WaitingSince);
 
+            if (room is null)
+                return CreateRoom(player, isPublic: true).Commit();
+
+            AddPlayer(room, player);
             return room.Commit();
         }
     }
@@ -74,6 +89,8 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
                 return RoomUpdate.Empty;
             }
 
+            // Оставшийся игрок снова ждёт соперника — в конце очереди подбора
+            room.WaitingSince = ++_waitingCounter;
             return room.Commit();
         }
     }
@@ -119,6 +136,28 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
             return room.Commit();
         }
     }
+
+    private Room CreateRoom(Player host, bool isPublic)
+    {
+        var room = new Room(GenerateCode(), isPublic) { WaitingSince = ++_waitingCounter };
+        room.Players.Add(host);
+        _rooms[room.Code] = room;
+        _roomByConnection[host.ConnectionId] = room;
+        return room;
+    }
+
+    private void AddPlayer(Room room, Player player)
+    {
+        room.Players.Add(player);
+        _roomByConnection[player.ConnectionId] = room;
+
+        if (room.IsFull)
+            room.StartGame(xSeat: Random.Shared.Next(Room.Capacity));
+    }
+
+    /// <summary>Один пользователь Telegram не может играть сам с собой, если это не разрешено настройкой.</summary>
+    private bool CanMatch(Room room, Player player) =>
+        _options.AllowSelfPlay || room.Players.All(p => p.User.Id != player.User.Id);
 
     private Room RoomOf(string connectionId) =>
         _roomByConnection.TryGetValue(connectionId, out var room)

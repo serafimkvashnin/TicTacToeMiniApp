@@ -22,6 +22,8 @@ export type Game = {
 export type Room = {
   code: string
   capacity: number
+  /** Комната из подбора случайного соперника */
+  isPublic: boolean
   players: Player[]
   /** Ваше место в players: у каждого подключения своё */
   yourSeat: number
@@ -79,7 +81,8 @@ function applyRoom(room: Room) {
   if (current && current.code === room.code && room.version < current.version) return
 
   const opponentLeft = current?.code === room.code && room.players.length < current.players.length
-  setState({ room, notice: opponentLeft ? 'Соперник покинул комнату' : state.notice })
+  const leftNotice = room.isPublic ? 'Соперник вышел — ищем нового' : 'Соперник покинул комнату'
+  setState({ room, notice: opponentLeft ? leftNotice : state.notice })
 }
 
 connection.on('RoomUpdated', applyRoom)
@@ -105,6 +108,10 @@ export async function createRoom() {
 
 export async function joinRoom(code: string) {
   applyRoom(await connection.invoke<Room>('JoinRoom', code))
+}
+
+export async function quickPlay() {
+  applyRoom(await connection.invoke<Room>('QuickPlay'))
 }
 
 export async function makeMove(cell: number) {

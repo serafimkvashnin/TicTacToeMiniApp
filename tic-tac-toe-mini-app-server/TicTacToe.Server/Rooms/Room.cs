@@ -6,13 +6,20 @@ namespace TicTacToe.Server.Rooms;
 /// Изменяемое состояние комнаты, доступ только под блокировкой <see cref="RoomManager"/>.
 /// Место игрока — его индекс в <see cref="Players"/>; первый игрок — хост.
 /// </summary>
-internal sealed class Room(string code)
+internal sealed class Room(string code, bool isPublic)
 {
     public const int Capacity = 2;
 
     private int _version;
 
     public string Code { get; } = code;
+
+    /// <summary>Публичная комната участвует в подборе случайного соперника, приватная — только по коду.</summary>
+    public bool IsPublic { get; } = isPublic;
+
+    /// <summary>С какого момента комната ждёт соперника; при подборе первым берётся тот, кто ждёт дольше.</summary>
+    public long WaitingSince { get; set; }
+
     public List<Player> Players { get; } = [];
     public TicTacToeGame? Game { get; private set; }
 
@@ -58,7 +65,7 @@ internal sealed class Room(string code)
             : new GameDto(Game.Board.ToArray(), Game.Turn, Game.Status, Game.Winner, Game.WinningLine);
 
         return new RoomUpdate(Players
-            .Select((p, seat) => new RoomView(p.ConnectionId, new RoomDto(Code, Capacity, players, seat, _version, game)))
+            .Select((p, seat) => new RoomView(p.ConnectionId, new RoomDto(Code, Capacity, IsPublic, players, seat, _version, game)))
             .ToList());
     }
 }
