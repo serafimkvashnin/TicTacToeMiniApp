@@ -1,17 +1,32 @@
 import * as signalR from '@microsoft/signalr'
 import { getInitData } from '../telegram'
 
+export type Mark = 'X' | 'O'
+
 export type Player = {
   id: number
   name: string
   username: string | null
   isHost: boolean
+  mark: Mark | null
+}
+
+export type Game = {
+  board: (Mark | null)[]
+  turn: Mark
+  status: 'Playing' | 'Won' | 'Draw'
+  winner: Mark | null
+  winningLine: number[] | null
 }
 
 export type Room = {
   code: string
   capacity: number
   players: Player[]
+  /** Ваше место в players: у каждого подключения своё */
+  yourSeat: number
+  version: number
+  game: Game | null
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
@@ -19,6 +34,8 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 export type GameState = {
   status: ConnectionStatus
   room: Room | null
+  /** Событие, о котором стоит сказать игроку, например уход соперника */
+  notice: string | null
 }
 
 // Пусто — тот же origin (в dev Vite проксирует /hubs на локальный сервер)
@@ -33,7 +50,7 @@ const connection = new signalR.HubConnectionBuilder()
   .build()
 
 // Простое внешнее хранилище для useSyncExternalStore
-let state: GameState = { status: 'disconnected', room: null }
+let state: GameState = { status: 'disconnected', room: null, notice: null }
 const listeners = new Set<() => void>()
 
 function setState(patch: Partial<GameState>) {
@@ -52,7 +69,20 @@ export function getState() {
   return state
 }
 
-connection.on('RoomUpdated', (room: Room) => setState({ room }))
+export function dismissNotice() {
+  setState({ notice: null })
+}
+
+// Ответ на свой запрос и рассылка сервера могут прийти в любом порядке — старое состояние отбрасываем
+function applyRoom(room: Room) {
+  const current = state.room
+  if (current && current.code === room.code && room.version < current.version) return
+
+  const opponentLeft = current?.code === room.code && room.players.length < current.players.length
+  setState({ room, notice: opponentLeft ? 'Соперник покинул комнату' : state.notice })
+}
+
+connection.on('RoomUpdated', applyRoom)
 connection.onreconnecting(() => setState({ status: 'connecting' }))
 // После переподключения это новое соединение: сервер уже вывел нас из комнаты
 connection.onreconnected(() => setState({ status: 'connected', room: null }))
@@ -70,16 +100,24 @@ export async function connect() {
 }
 
 export async function createRoom() {
-  setState({ room: await connection.invoke<Room>('CreateRoom') })
+  applyRoom(await connection.invoke<Room>('CreateRoom'))
 }
 
 export async function joinRoom(code: string) {
-  setState({ room: await connection.invoke<Room>('JoinRoom', code) })
+  applyRoom(await connection.invoke<Room>('JoinRoom', code))
+}
+
+export async function makeMove(cell: number) {
+  applyRoom(await connection.invoke<Room>('MakeMove', cell))
+}
+
+export async function rematch() {
+  applyRoom(await connection.invoke<Room>('Rematch'))
 }
 
 export async function leaveRoom() {
   await connection.invoke('LeaveRoom')
-  setState({ room: null })
+  setState({ room: null, notice: null })
 }
 
 // SignalR оборачивает HubException в "...HubException: <сообщение>"

@@ -40,41 +40,41 @@ public sealed class GameHub(RoomManager rooms, TelegramAuthenticator authenticat
     public async Task<RoomDto> CreateRoom()
     {
         await LeaveCurrentRoom();
-
-        var room = rooms.Create(CurrentPlayer);
-        await Groups.AddToGroupAsync(Context.ConnectionId, room.Code);
-        return room;
+        return rooms.Create(CurrentPlayer).For(Context.ConnectionId);
     }
 
     public async Task<RoomDto> JoinRoom(string code)
     {
         await LeaveCurrentRoom();
-
-        var result = rooms.Join(code, CurrentPlayer);
-        var room = result.Status switch
-        {
-            JoinStatus.Joined => result.Room!,
-            JoinStatus.NotFound => throw new HubException("Комната не найдена"),
-            JoinStatus.Full => throw new HubException("Комната уже заполнена"),
-            JoinStatus.AlreadyInRoom => throw new HubException("Вы уже в этой комнате"),
-            _ => throw new ArgumentOutOfRangeException(nameof(result)),
-        };
-
-        await Groups.AddToGroupAsync(Context.ConnectionId, room.Code);
-        await Clients.Group(room.Code).RoomUpdated(room);
-        return room;
+        return await Apply(() => rooms.Join(code, CurrentPlayer));
     }
+
+    public Task<RoomDto> MakeMove(int cell) => Apply(() => rooms.MakeMove(Context.ConnectionId, cell));
+
+    public Task<RoomDto> Rematch() => Apply(() => rooms.Rematch(Context.ConnectionId));
 
     public Task LeaveRoom() => LeaveCurrentRoom();
 
-    private async Task LeaveCurrentRoom()
+    /// <summary>Выполняет действие, рассылает новое состояние соперникам и возвращает его вызвавшему.</summary>
+    private async Task<RoomDto> Apply(Func<RoomUpdate> action)
     {
-        var left = rooms.Leave(Context.ConnectionId);
-        if (left is null)
-            return;
+        RoomUpdate update;
+        try
+        {
+            update = action();
+        }
+        catch (RoomException e)
+        {
+            throw new HubException(e.Message);
+        }
 
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, left.Code);
-        if (left.Room is not null)
-            await Clients.Group(left.Code).RoomUpdated(left.Room);
+        await NotifyOthers(update);
+        return update.For(Context.ConnectionId);
     }
+
+    private Task LeaveCurrentRoom() => NotifyOthers(rooms.Leave(Context.ConnectionId));
+
+    private Task NotifyOthers(RoomUpdate update) => Task.WhenAll(update.Views
+        .Where(v => v.ConnectionId != Context.ConnectionId)
+        .Select(v => Clients.Client(v.ConnectionId).RoomUpdated(v.Room)));
 }

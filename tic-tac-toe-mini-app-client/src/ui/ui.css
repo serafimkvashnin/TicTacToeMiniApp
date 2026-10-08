@@ -1,32 +1,69 @@
-/* --hud-height выставляет App из HEADER_HEIGHT сцены, --tg-* выставляет Telegram */
-.overlay {
-  position: absolute;
-  inset: 0;
+:root {
+  --color-bg: #2d6cdf;
+  --color-header: #1b4fae;
+  --color-text: #1b2a4a;
+  --color-muted: #7a869e;
+  --color-x: #1b4fae;
+  --color-o: #e0533d;
+  --color-cell: #eef3fc;
+
+  /* --tg-* выставляет Telegram: системная зона и зона его кнопок в полноэкранном режиме */
+  --inset-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+  --inset-bottom: var(--tg-safe-area-inset-bottom, 0px);
+  --header-height: 48px;
+}
+
+body {
+  background: var(--color-bg);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--header-height);
+  padding-top: var(--inset-top);
+  background: var(--color-header);
+  color: #fff;
+}
+
+.header-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + var(--hud-height, 0px) + 16px)
-    16px calc(var(--tg-safe-area-inset-bottom, 0px) + 16px);
-  box-sizing: border-box;
+  padding: 16px 16px calc(var(--inset-bottom) + 16px);
   overflow-y: auto;
-  /* клики по пустому месту проходят в canvas */
-  pointer-events: none;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color: #1b2a4a;
 }
 
+/* ---------- Панели и кнопки ---------- */
+
 .panel {
-  pointer-events: auto;
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 20px;
   box-sizing: border-box;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
@@ -53,7 +90,7 @@
   font: inherit;
   font-size: 16px;
   font-weight: 600;
-  color: #1b4fae;
+  color: var(--color-header);
   background: #e6eefc;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
@@ -61,7 +98,7 @@
 
 .button.primary {
   color: #fff;
-  background: #1b4fae;
+  background: var(--color-header);
 }
 
 .button:active:not(:disabled) {
@@ -76,7 +113,7 @@
 .divider {
   text-align: center;
   font-size: 13px;
-  color: #7a869e;
+  color: var(--color-muted);
 }
 
 .join-form {
@@ -98,13 +135,30 @@
 }
 
 .input:focus {
-  border-color: #1b4fae;
+  border-color: var(--color-header);
 }
+
+.toast {
+  width: 100%;
+  max-width: 380px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  color: #fff;
+  background: rgba(27, 42, 74, 0.85);
+  text-align: center;
+}
+
+.toast.error {
+  background: #d64545;
+}
+
+/* ---------- Комната ---------- */
 
 .room-code-label {
   text-align: center;
   font-size: 13px;
-  color: #7a869e;
+  color: var(--color-muted);
 }
 
 .room-code {
@@ -113,6 +167,12 @@
   font-weight: 700;
   letter-spacing: 6px;
   user-select: all;
+}
+
+.room-code-small {
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-muted);
 }
 
 .players {
@@ -134,7 +194,7 @@
 }
 
 .player.empty {
-  color: #7a869e;
+  color: var(--color-muted);
   font-style: italic;
 }
 
@@ -147,7 +207,7 @@
 
 .player-username {
   font-size: 13px;
-  color: #7a869e;
+  color: var(--color-muted);
 }
 
 .badge {
@@ -156,17 +216,171 @@
   border-radius: 8px;
   font-size: 12px;
   color: #fff;
-  background: #1b4fae;
+  background: var(--color-header);
 }
 
-.error {
-  pointer-events: auto;
-  width: 100%;
-  max-width: 360px;
-  padding: 12px 16px;
-  box-sizing: border-box;
+/* ---------- Партия ---------- */
+
+.scoreboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 2px solid transparent;
   border-radius: 12px;
-  color: #fff;
-  background: #d64545;
+  background: #f1f4fa;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.side.active {
+  border-color: var(--color-header);
+  background: #e6eefc;
+}
+
+.side .mark {
+  flex-shrink: 0;
+  margin: 0;
+  width: 22px;
+  height: 22px;
+}
+
+.side-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-you {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.game-status {
   text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.game-status.win {
+  color: #2e9e5b;
+}
+
+.game-status.lose {
+  color: #d64545;
+}
+
+.board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.cell {
+  appearance: none;
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  background: var(--color-cell);
+  cursor: default;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.board.playable .cell:not(:disabled) {
+  cursor: pointer;
+}
+
+.board.playable .cell:not(:disabled):active {
+  transform: scale(0.96);
+  background: #dbe5f8;
+}
+
+.cell.winning {
+  background: #fff4c7;
+}
+
+.cell .mark {
+  width: 80%;
+  height: 80%;
+}
+
+/* ---------- Знаки ---------- */
+
+.mark {
+  display: block;
+  margin: auto;
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.mark-x {
+  stroke: var(--color-x);
+}
+
+.mark-o {
+  stroke: var(--color-o);
+}
+
+.mark.animate line,
+.mark.animate circle {
+  stroke-dasharray: 100;
+  animation: draw 0.25s ease-out both;
+}
+
+.mark.animate .second {
+  animation-delay: 0.12s;
+}
+
+.win-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.win-line line {
+  stroke-width: 0.08;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  opacity: 0.7;
+  animation: draw 0.4s ease-out 0.25s both;
+}
+
+.win-line-x line {
+  stroke: var(--color-x);
+}
+
+.win-line-o line {
+  stroke: var(--color-o);
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark.animate line,
+  .mark.animate circle,
+  .win-line line {
+    animation: none;
+  }
 }

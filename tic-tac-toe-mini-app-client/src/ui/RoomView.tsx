@@ -9,11 +9,11 @@ type Props = {
   onLeave: () => void
 }
 
+/** Комната до начала партии: ждём второго игрока */
 export function RoomView({ room, busy, onLeave }: Props) {
   const emptySlots = room.capacity - room.players.length
 
-  const invite = () =>
-    shareLink(`${BOT_APP_URL}?startapp=${room.code}`, 'Сыграем в крестики-нолики?')
+  const invite = () => shareLink(`${BOT_APP_URL}?startapp=${room.code}`, 'Сыграем в крестики-нолики?')
 
   return (
     <div className="panel">
@@ -36,7 +36,7 @@ export function RoomView({ room, busy, onLeave }: Props) {
         ))}
       </ul>
 
-      {BOT_APP_URL && emptySlots > 0 && (
+      {BOT_APP_URL && (
         <button className="button primary" onClick={invite}>
           Пригласить
         </button>

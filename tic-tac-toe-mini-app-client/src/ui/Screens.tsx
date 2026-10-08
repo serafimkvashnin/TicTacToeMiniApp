@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import * as game from '../net/gameClient'
 import { getStartParam } from '../telegram'
+import { GameView } from './GameView'
 import { Lobby } from './Lobby'
 import { RoomView } from './RoomView'
 
-export function Overlay() {
-  const { status, room } = useSyncExternalStore(game.subscribe, game.getState)
+export function Screens() {
+  const { status, room, notice } = useSyncExternalStore(game.subscribe, game.getState)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const startParamUsed = useRef(false)
@@ -13,6 +14,7 @@ export function Overlay() {
   const run = async (action: () => Promise<void>) => {
     setBusy(true)
     setError(null)
+    game.dismissNotice()
     try {
       await action()
     } catch (e) {
@@ -34,8 +36,10 @@ export function Overlay() {
     run(() => game.joinRoom(code))
   }, [status])
 
+  const leave = () => run(game.leaveRoom)
+
   return (
-    <div className="overlay">
+    <>
       {status === 'connecting' && <div className="panel status">Подключение…</div>}
 
       {status === 'disconnected' && (
@@ -47,14 +51,25 @@ export function Overlay() {
         </div>
       )}
 
-      {status === 'connected' &&
-        (room ? (
-          <RoomView room={room} busy={busy} onLeave={() => run(game.leaveRoom)} />
-        ) : (
-          <Lobby busy={busy} onCreate={() => run(game.createRoom)} onJoin={(code) => run(() => game.joinRoom(code))} />
-        ))}
+      {status === 'connected' && !room && (
+        <Lobby busy={busy} onCreate={() => run(game.createRoom)} onJoin={(code) => run(() => game.joinRoom(code))} />
+      )}
 
-      {error && <div className="error">{error}</div>}
-    </div>
+      {status === 'connected' && room && !room.game && <RoomView room={room} busy={busy} onLeave={leave} />}
+
+      {status === 'connected' && room?.game && (
+        <GameView
+          room={room}
+          game={room.game}
+          busy={busy}
+          onMove={(cell) => run(() => game.makeMove(cell))}
+          onRematch={() => run(game.rematch)}
+          onLeave={leave}
+        />
+      )}
+
+      {notice && <div className="toast">{notice}</div>}
+      {error && <div className="toast error">{error}</div>}
+    </>
   )
 }
