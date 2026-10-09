@@ -9,16 +9,23 @@ namespace TicTacToe.Server.Hubs;
 public interface IGameClient
 {
     Task RoomUpdated(RoomDto room);
+
+    /// <summary>Игрок на месте <paramref name="seat"/> отправил стикер.</summary>
+    Task Emote(int seat, string emote);
 }
 
 public sealed class GameHub(
     RoomManager rooms,
     BotDriver bots,
+    EmoteLimiter emoteLimiter,
     TelegramAuthenticator authenticator,
     ILogger<GameHub> logger)
     : Hub<IGameClient>
 {
     private const string UserKey = "user";
+
+    /// <summary>Какие стикеры можно отправлять; картинку для каждого рисует клиент.</summary>
+    private static readonly HashSet<string> AllowedEmotes = ["impatient"];
 
     private Player CurrentPlayer => new(Context.ConnectionId, (TelegramUser)Context.Items[UserKey]!);
 
@@ -39,6 +46,7 @@ public sealed class GameHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        emoteLimiter.Forget(Context.ConnectionId);
         await LeaveCurrentRoom();
         await base.OnDisconnectedAsync(exception);
     }
@@ -72,6 +80,18 @@ public sealed class GameHub(
     public Task<RoomDto> Rematch() => Apply(() => rooms.Rematch(Context.ConnectionId));
 
     public Task LeaveRoom() => LeaveCurrentRoom();
+
+    /// <summary>Стикер видят оба игрока: он вылетает из плашки отправителя. Слишком частые молча отбрасываются.</summary>
+    public async Task SendEmote(string emote)
+    {
+        if (!AllowedEmotes.Contains(emote))
+            throw new HubException("Неизвестный стикер");
+
+        if (!emoteLimiter.TryAcquire(Context.ConnectionId) || rooms.EmoteTargetsFor(Context.ConnectionId) is not { } targets)
+            return;
+
+        await Clients.Clients(targets.Recipients).Emote(targets.Seat, emote);
+    }
 
     /// <summary>Выполняет действие, рассылает новое состояние соперникам и возвращает его вызвавшему.</summary>
     private async Task<RoomDto> Apply(Func<RoomUpdate> action)

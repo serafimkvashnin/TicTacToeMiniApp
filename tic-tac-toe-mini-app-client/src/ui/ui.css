@@ -259,9 +259,9 @@ body {
 
 /* ---------- Партия ---------- */
 
+/* Слева компактная плашка «Вы», справа соперник — занимает всё оставшееся место */
 .scoreboard {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 8px;
 }
 
@@ -274,6 +274,8 @@ body {
   border: 2px solid transparent;
   border-radius: 12px;
   background: #f1f4fa;
+  font: inherit;
+  color: inherit;
   transition: border-color 0.2s, background 0.2s;
 }
 
@@ -289,18 +291,108 @@ body {
   height: 22px;
 }
 
-.side-name {
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* «Вы» — ровно по содержимому */
+.side-me {
+  flex: 0 0 auto;
 }
 
 .side-you {
-  margin-left: auto;
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--color-muted);
+  font-weight: 600;
+}
+
+/* Соперник прижат к правому краю: ник, правее — его знак */
+.side-opponent {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.side-name {
+  font-weight: 600;
+}
+
+.side-link {
+  appearance: none;
+  cursor: pointer;
+}
+
+.side-link .side-name {
+  text-decoration: underline;
+  text-decoration-color: rgba(27, 79, 174, 0.35);
+  text-underline-offset: 3px;
+}
+
+.side-link:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Бегущая строка для длинных ников ---------- */
+
+.marquee {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.marquee-inner {
+  display: inline-block;
+}
+
+.marquee.scrolling {
+  /* края растворяются, чтобы обрезанный текст не выглядел ошибкой */
+  mask-image: linear-gradient(90deg, transparent, #000 8px, #000 calc(100% - 8px), transparent);
+}
+
+.marquee.scrolling .marquee-inner {
+  animation: marquee var(--duration) ease-in-out infinite alternate;
+}
+
+@keyframes marquee {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  85%,
+  100% {
+    transform: translateX(calc(-1 * var(--overflow)));
+  }
+}
+
+/* ---------- Действия и стикеры ---------- */
+
+.game-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.leave-button {
+  flex: 1;
+}
+
+.emote-button {
+  flex: 0 0 auto;
+  width: 52px;
+  padding: 0;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.emote-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.emote-particle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  line-height: 1;
+  user-select: none;
+  will-change: transform;
 }
 
 .game-status {
@@ -326,6 +418,12 @@ body {
   gap: 8px;
   width: 100%;
   aspect-ratio: 1;
+  transition: filter 0.25s;
+}
+
+/* Ход соперника: поле слегка затемнено */
+.board.waiting {
+  filter: brightness(0.9) saturate(0.85);
 }
 
 .cell {
@@ -423,7 +521,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .mark.animate line,
   .mark.animate circle,
-  .win-line line {
+  .win-line line,
+  .marquee.scrolling .marquee-inner {
     animation: none;
   }
 }

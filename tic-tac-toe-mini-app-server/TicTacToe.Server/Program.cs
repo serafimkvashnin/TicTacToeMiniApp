@@ -11,6 +11,8 @@ builder.Services.AddSingleton<TelegramAuthenticator>();
 builder.Services.Configure<RoomOptions>(builder.Configuration.GetSection(RoomOptions.SectionName));
 builder.Services.AddSingleton<RoomManager>();
 builder.Services.AddSingleton<BotDriver>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<EmoteLimiter>();
 builder.Services.AddSignalR()
     // Перечисления (X/O, статус партии) уходят клиенту строками, а не числами
     .AddJsonProtocol(options => options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));

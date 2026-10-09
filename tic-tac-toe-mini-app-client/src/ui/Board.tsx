@@ -3,12 +3,14 @@ import type { Game, Mark } from '../net/gameClient'
 type Props = {
   game: Game
   canPlay: boolean
+  /** Ход соперника — поле приглушено, чтобы было видно, что сейчас ждём */
+  waiting: boolean
   onMove: (cell: number) => void
 }
 
-export function Board({ game, canPlay, onMove }: Props) {
+export function Board({ game, canPlay, waiting, onMove }: Props) {
   return (
-    <div className={`board ${canPlay ? 'playable' : ''}`}>
+    <div className={`board ${canPlay ? 'playable' : ''} ${waiting ? 'waiting' : ''}`}>
       {game.board.map((mark, cell) => (
         <button
           key={cell}

@@ -138,6 +138,19 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
+    /// <summary>Кому показать стикер игрока: его место и живые игроки комнаты (включая его самого).</summary>
+    public EmoteTargets? EmoteTargetsFor(string connectionId)
+    {
+        lock (_lock)
+        {
+            if (!_roomByConnection.TryGetValue(connectionId, out var room))
+                return null;
+
+            var recipients = room.Players.Where(p => !p.IsBot).Select(p => p.ConnectionId).ToList();
+            return new EmoteTargets(room.SeatOf(connectionId), recipients);
+        }
+    }
+
     // ---------- Боты ----------
 
     /// <summary>Что боту предстоит сделать в комнате, или null, если ничего.</summary>

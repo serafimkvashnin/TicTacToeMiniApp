@@ -92,6 +92,22 @@ function applyRoom(room: Room) {
 }
 
 connection.on('RoomUpdated', applyRoom)
+
+// Стикеры — разовые события, а не состояние, поэтому идут отдельно от хранилища
+type EmoteListener = (seat: number, emote: string) => void
+const emoteListeners = new Set<EmoteListener>()
+connection.on('Emote', (seat: number, emote: string) => emoteListeners.forEach((listener) => listener(seat, emote)))
+
+export function onEmote(listener: EmoteListener) {
+  emoteListeners.add(listener)
+  return () => {
+    emoteListeners.delete(listener)
+  }
+}
+
+export async function sendEmote(emote: string) {
+  await connection.invoke('SendEmote', emote)
+}
 connection.onreconnecting(() => setState({ status: 'connecting' }))
 // После переподключения это новое соединение: сервер уже вывел нас из комнаты
 connection.onreconnected(() => setState({ status: 'connected', room: null, notice: null }))

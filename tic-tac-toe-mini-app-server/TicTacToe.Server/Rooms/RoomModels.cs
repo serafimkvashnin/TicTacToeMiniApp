@@ -55,6 +55,9 @@ public sealed record RoomUpdate(string? Code, IReadOnlyList<RoomView> Views)
     public RoomDto For(string connectionId) => Views.First(v => v.ConnectionId == connectionId).Room;
 }
 
+/// <param name="Seat">Место отправителя — от его плашки на экране вылетает стикер.</param>
+public sealed record EmoteTargets(int Seat, IReadOnlyList<string> Recipients);
+
 /// <summary>Нарушение правил комнаты или игры; сообщение показывается игроку.</summary>
 public sealed class RoomException(string message) : Exception(message);
 
