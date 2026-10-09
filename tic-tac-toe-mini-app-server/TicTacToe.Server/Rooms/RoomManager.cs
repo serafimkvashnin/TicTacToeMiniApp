@@ -175,7 +175,7 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
             if (!_rooms.TryGetValue(task.Code, out var room) || room.IsFull || room.WaitingSince != task.WaitingSince)
                 return RoomUpdate.Empty;
 
-            var difficulty = (BotDifficulty)random.Next(Enum.GetValues<BotDifficulty>().Length);
+            var difficulty = _options.PickDisguisedDifficulty(random);
             AddPlayer(room, CreateBot(BotNames.CreateUser(random), new BotProfile(difficulty, Disguised: true)));
             return room.Commit();
         }

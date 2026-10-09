@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using TicTacToe.Server.Gameplay;
 using TicTacToe.Server.Rooms;
 
 namespace TicTacToe.Server.Tests;
@@ -62,5 +63,28 @@ public class RoomOptionsTests
         }
         Assert.InRange(options.BotLeaveChance, 0, 1);
         Assert.InRange(options.BotMidGameLeaveChance, 0, 1);
+        Assert.Equal(new[] { BotDifficulty.Medium, BotDifficulty.Hard }, options.DisguisedBotDifficulties);
+    }
+
+    [Fact]
+    public void Disguised_bot_is_never_easy_by_default()
+    {
+        var options = new RoomOptions();
+        var random = new Random(1);
+
+        var picks = Enumerable.Range(0, 500).Select(_ => options.PickDisguisedDifficulty(random)).ToHashSet();
+
+        Assert.Equal(new HashSet<BotDifficulty> { BotDifficulty.Medium, BotDifficulty.Hard }, picks);
+    }
+
+    [Fact]
+    public void Disguised_difficulties_from_config_replace_defaults()
+    {
+        const string json = """{ "Rooms": { "DisguisedBotDifficulties": [ "Hard" ] } }""";
+        var config = new ConfigurationBuilder().AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json))).Build();
+        var options = config.GetSection(RoomOptions.SectionName).Get<RoomOptions>()!;
+        var random = new Random(1);
+
+        Assert.All(Enumerable.Range(0, 100), _ => Assert.Equal(BotDifficulty.Hard, options.PickDisguisedDifficulty(random)));
     }
 }

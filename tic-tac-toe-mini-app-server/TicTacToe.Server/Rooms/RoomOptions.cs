@@ -1,3 +1,5 @@
+using TicTacToe.Server.Gameplay;
+
 namespace TicTacToe.Server.Rooms;
 
 /// <summary>
@@ -31,6 +33,21 @@ public sealed class RoomOptions
     /// Проверяется на каждый ход игрока.
     /// </summary>
     public double BotMidGameLeaveChance { get; set; } = 0.07;
+
+    /// <summary>
+    /// Из каких сложностей случайно выбирается замаскированный бот. Лёгкий сюда не входит:
+    /// его частые нелепые ходы выдают, что это не человек. Пусто — значение по умолчанию.
+    /// </summary>
+    public BotDifficulty[] DisguisedBotDifficulties { get; set; } = [];
+
+    private static readonly BotDifficulty[] DefaultDisguisedDifficulties = [BotDifficulty.Medium, BotDifficulty.Hard];
+
+    public BotDifficulty PickDisguisedDifficulty(Random random)
+    {
+        // Массив по умолчанию в коде пустой: биндер конфигурации дописывает элементы к существующим, а не заменяет их
+        var options = DisguisedBotDifficulties.Length > 0 ? DisguisedBotDifficulties : DefaultDisguisedDifficulties;
+        return options[random.Next(options.Length)];
+    }
 }
 
 /// <summary>Диапазон времени; в конфиге задаётся как { "Min": "00:00:10", "Max": "00:00:14" }.</summary>
