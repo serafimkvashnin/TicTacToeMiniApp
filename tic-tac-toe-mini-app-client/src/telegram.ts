@@ -27,8 +27,8 @@ export function shareLink(url: string, text: string) {
   else window.open(shareUrl, '_blank')
 }
 
-/** Чат с пользователем по его публичному @username; по id открыть чат из Mini App нельзя */
-export function openUserChat(username: string) {
+/** Чат, канал или пользователь по публичному @username; по id открыть чат из Mini App нельзя */
+export function openTelegramUsername(username: string) {
   const url = `https://t.me/${username}`
   if (tg) tg.openTelegramLink(url)
   else window.open(url, '_blank')

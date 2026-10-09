@@ -158,6 +158,51 @@ body {
   background: #d64545;
 }
 
+/* ---------- Плитки-ссылки под главной плашкой ---------- */
+
+/* Отдельные «островки» в стиле плашки: делят ширину поровну, одна плитка — на всю ширину */
+.lobby-links {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.link-tile {
+  flex: 1;
+  min-width: 0;
+  /* высота примерно двух обычных кнопок */
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: none;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.link-tile:active {
+  transform: scale(0.97);
+}
+
+.link-tile-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.link-tile-label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
 /* ---------- Поиск соперника ---------- */
 
 .spinner {

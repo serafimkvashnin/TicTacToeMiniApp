@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as gameClient from '../net/gameClient'
 import type { Game, Mark, Player, Room } from '../net/gameClient'
-import { haptic, openUserChat } from '../telegram'
+import { haptic, openTelegramUsername } from '../telegram'
 import { Board, MarkIcon } from './Board'
 import { EMOTES, popFrom, type EmoteId } from './emotes'
 import { MarqueeText } from './MarqueeText'
@@ -92,7 +92,7 @@ function OpponentSide({ player, seat, active }: { player: Player; seat: number; 
       className={`${className} side-link`}
       data-seat={seat}
       title={`Написать @${username}`}
-      onClick={() => openUserChat(username)}
+      onClick={() => openTelegramUsername(username)}
     >
       {content}
     </button>
