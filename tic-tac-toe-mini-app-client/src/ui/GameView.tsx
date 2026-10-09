@@ -90,7 +90,10 @@ function OpponentCard({ player, seat }: { player: Player; seat: number }) {
       className="panel opponent-card opponent-link"
       data-emote-seat={seat}
       title={`Написать @${username}`}
-      onClick={() => openTelegramUsername(username)}
+      onClick={() => {
+        haptic.tap()
+        openTelegramUsername(username)
+      }}
     >
       {content}
     </button>

@@ -408,37 +408,61 @@ circle.logo-mark {
 
 /*
  * С публичным @username карточка нажимается: имя синее, как ссылка в Telegram,
- * и раз в несколько секунд по карточке пробегает блик — намёк, что сюда можно нажать
+ * и изредка вдоль контура пробегает «змейка» — намёк, что это кнопка
  */
 .opponent-link {
   appearance: none;
   position: relative;
-  overflow: hidden;
   cursor: pointer;
   transition: transform 0.1s;
 }
 
-.opponent-link::after {
+/* Угол «головы» змейки — анимируемое свойство, чтобы крутить конический градиент */
+@property --snake-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Кольцо толщиной 2px по контуру карточки: градиент виден только в рамке, середина вырезана маской */
+.opponent-link::before {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 40%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.9), transparent);
-  transform: translateX(-150%) skewX(-20deg);
-  animation: shine 4.5s ease-in-out 1s infinite;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--snake-angle),
+    transparent 0turn 0.72turn,
+    rgba(27, 79, 174, 0.25) 0.82turn,
+    var(--color-primary) 0.97turn,
+    transparent 1turn
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  animation: snake 8s linear 1.5s infinite;
   pointer-events: none;
 }
 
-/* Блик проходит за первые ~20% цикла, остальное время карточка спокойна */
-@keyframes shine {
+/* Один неторопливый круг (~3с) с плавным появлением и исчезновением, дальше ~5с покоя */
+@keyframes snake {
   0% {
-    transform: translateX(-150%) skewX(-20deg);
+    --snake-angle: 0deg;
+    opacity: 0;
   }
-  20%,
+  5%,
+  33% {
+    opacity: 1;
+  }
+  40% {
+    --snake-angle: 360deg;
+    opacity: 0;
+  }
   100% {
-    transform: translateX(350%) skewX(-20deg);
+    --snake-angle: 360deg;
+    opacity: 0;
   }
 }
 
@@ -674,7 +698,7 @@ circle.logo-mark {
   .mark.animate circle,
   .win-line line,
   .marquee.scrolling .marquee-inner,
-  .opponent-link::after {
+  .opponent-link::before {
     animation: none;
   }
 }

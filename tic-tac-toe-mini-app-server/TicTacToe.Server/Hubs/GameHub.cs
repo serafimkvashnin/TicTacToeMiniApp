@@ -43,8 +43,9 @@ public sealed class GameHub(
         }
 
         Context.Items[UserKey] = user;
-        logger.LogInformation("User {UserId} ({UserName}) connected, connection {ConnectionId}",
-            user.Id, user.DisplayName, Context.ConnectionId);
+        // @username пишем отдельно: по нему видно, сможет ли соперник открыть чат с игроком
+        logger.LogInformation("User {UserId} ({UserName}, @{Username}) connected, connection {ConnectionId}",
+            user.Id, user.DisplayName, user.Username ?? "—", Context.ConnectionId);
         await base.OnConnectedAsync();
     }
 
