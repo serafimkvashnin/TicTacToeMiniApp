@@ -2,10 +2,13 @@ using System.Collections.Concurrent;
 
 namespace TicTacToe.Server.Hubs;
 
-/// <summary>Не даёт засыпать соперника стикерами: не чаще одного раза в <see cref="MinInterval"/> с подключения.</summary>
+/// <summary>
+/// Защита от скриптов: не чаще одного стикера в <see cref="MinInterval"/> с подключения.
+/// Человеку столько не нажать, так что обычной игре ограничение не мешает.
+/// </summary>
 public sealed class EmoteLimiter(TimeProvider time)
 {
-    public static readonly TimeSpan MinInterval = TimeSpan.FromSeconds(1);
+    public static readonly TimeSpan MinInterval = TimeSpan.FromMilliseconds(100);
 
     private readonly ConcurrentDictionary<string, DateTimeOffset> _lastSent = new();
 

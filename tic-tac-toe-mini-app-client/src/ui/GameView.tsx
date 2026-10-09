@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as gameClient from '../net/gameClient'
 import type { Game, Mark, Player, Room } from '../net/gameClient'
 import { haptic, openUserChat } from '../telegram'
@@ -14,8 +14,6 @@ type Props = {
   onRematch: () => void
   onLeave: () => void
 }
-
-const EMOTE_COOLDOWN_MS = 1200
 
 export function GameView({ room, game, busy, onMove, onRematch, onLeave }: Props) {
   const me = room.players[room.yourSeat]
@@ -102,17 +100,13 @@ function OpponentSide({ player, seat, active }: { player: Player; seat: number; 
 }
 
 function EmoteButton({ emote }: { emote: EmoteId }) {
-  const [cooling, setCooling] = useState(false)
-
   const send = () => {
-    setCooling(true)
-    setTimeout(() => setCooling(false), EMOTE_COOLDOWN_MS)
     haptic.tap()
     gameClient.sendEmote(emote).catch(() => {})
   }
 
   return (
-    <button className="button emote-button" disabled={cooling} aria-label="Поторопить соперника" onClick={send}>
+    <button className="button emote-button" aria-label="Поторопить соперника" onClick={send}>
       {EMOTES[emote]}
     </button>
   )
