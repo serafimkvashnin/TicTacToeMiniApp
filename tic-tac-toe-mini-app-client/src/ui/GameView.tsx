@@ -3,7 +3,7 @@ import * as gameClient from '../net/gameClient'
 import type { Game, Mark, Player, Room } from '../net/gameClient'
 import { haptic, openUserChat } from '../telegram'
 import { Board, MarkIcon } from './Board'
-import { burstFrom, EMOTES, type EmoteId } from './emotes'
+import { EMOTES, popFrom, type EmoteId } from './emotes'
 import { MarqueeText } from './MarqueeText'
 
 type Props = {
@@ -24,7 +24,7 @@ export function GameView({ room, game, busy, onMove, onRematch, onLeave }: Props
   const isOver = game.status !== 'Playing'
 
   useGameHaptics(game, myMark)
-  useEmoteBursts()
+  useEmotePops()
 
   return (
     <div className="panel game">
@@ -113,13 +113,13 @@ function EmoteButton({ emote }: { emote: EmoteId }) {
 }
 
 /** Стикер вылетает из плашки того, кто его отправил */
-function useEmoteBursts() {
+function useEmotePops() {
   useEffect(
     () =>
       gameClient.onEmote((seat, emote) => {
         if (!(emote in EMOTES)) return
         const side = document.querySelector(`.side[data-seat="${seat}"]`)
-        if (side) burstFrom(side, emote as EmoteId)
+        if (side) popFrom(side, emote as EmoteId)
       }),
     [],
   )

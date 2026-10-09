@@ -6,8 +6,6 @@ export const EMOTES = {
 export type EmoteId = keyof typeof EMOTES
 
 const GRAVITY = 1500 // px/s²
-const PARTICLES_MIN = 5
-const PARTICLES_MAX = 8
 
 let layer: HTMLDivElement | null = null
 
@@ -21,16 +19,15 @@ function getLayer() {
   return layer
 }
 
-/** Россыпь стикеров выпрыгивает из элемента и падает под гравитацией */
-export function burstFrom(element: Element, emote: EmoteId) {
+/**
+ * Один стикер выпрыгивает из случайного места элемента и падает под гравитацией.
+ * Одно нажатие — один стикер: хочешь больше — жми чаще.
+ */
+export function popFrom(element: Element, emote: EmoteId) {
   const rect = element.getBoundingClientRect()
-  const count = PARTICLES_MIN + Math.floor(Math.random() * (PARTICLES_MAX - PARTICLES_MIN + 1))
-
-  for (let i = 0; i < count; i++) {
-    const x = rect.left + rect.width * (0.2 + Math.random() * 0.6)
-    const y = rect.top + rect.height / 2
-    setTimeout(() => spawn(x, y, EMOTES[emote]), i * 60)
-  }
+  const x = rect.left + rect.width * (0.2 + Math.random() * 0.6)
+  const y = rect.top + rect.height / 2
+  spawn(x, y, EMOTES[emote])
 }
 
 function spawn(x: number, y: number, emoji: string) {
