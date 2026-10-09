@@ -55,7 +55,7 @@ public sealed class TicTacToeGame
 
         _board[cell] = mark;
 
-        var line = Lines.FirstOrDefault(l => l.All(i => _board[i] == mark));
+        var line = FindWinningLine(_board);
         if (line is not null)
         {
             Status = GameStatus.Won;
@@ -68,9 +68,15 @@ public sealed class TicTacToeGame
         }
         else
         {
-            Turn = mark == Mark.X ? Mark.O : Mark.X;
+            Turn = Opponent(mark);
         }
 
         return MoveError.None;
     }
+
+    /// <summary>Заполненная одним знаком линия или null.</summary>
+    public static int[]? FindWinningLine(IReadOnlyList<Mark?> board) =>
+        Lines.FirstOrDefault(l => board[l[0]] is not null && board[l[0]] == board[l[1]] && board[l[1]] == board[l[2]]);
+
+    public static Mark Opponent(Mark mark) => mark == Mark.X ? Mark.O : Mark.X;
 }

@@ -51,8 +51,8 @@ export function GameView({ room, game, busy, onMove, onRematch, onLeave }: Props
         Выйти из комнаты
       </button>
 
-      {/* Код нужен только приватным комнатам: в публичные по коду не войти */}
-      {!room.isPublic && <div className="room-code-small">Комната {room.code}</div>}
+      {/* Код нужен только приватным комнатам: в остальные по коду не войти */}
+      {room.kind === 'Private' &&<div className="room-code-small">Комната {room.code}</div>}
     </div>
   )
 }

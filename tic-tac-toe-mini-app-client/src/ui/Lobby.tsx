@@ -1,18 +1,46 @@
 import { useState, type FormEvent } from 'react'
+import type { BotDifficulty } from '../net/gameClient'
 
 type Props = {
   busy: boolean
   onQuickPlay: () => void
+  onPlayBot: (difficulty: BotDifficulty) => void
   onCreate: () => void
   onJoin: (code: string) => void
 }
 
-export function Lobby({ busy, onQuickPlay, onCreate, onJoin }: Props) {
+const DIFFICULTIES: { value: BotDifficulty; label: string }[] = [
+  { value: 'Easy', label: 'Лёгкий' },
+  { value: 'Medium', label: 'Средний' },
+  { value: 'Hard', label: 'Сложный' },
+]
+
+export function Lobby({ busy, onQuickPlay, onPlayBot, onCreate, onJoin }: Props) {
   const [code, setCode] = useState('')
+  const [choosingBot, setChoosingBot] = useState(false)
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (code.trim()) onJoin(code)
+  }
+
+  if (choosingBot) {
+    return (
+      <div className="panel">
+        <h2>Игра с ботом</h2>
+        <div className="divider">Выберите сложность</div>
+
+        {DIFFICULTIES.map(({ value, label }) => (
+          <button key={value} className="button primary" disabled={busy} onClick={() => onPlayBot(value)}>
+            {label}
+          </button>
+        ))}
+
+        <button className="button" disabled={busy} onClick={() => setChoosingBot(false)}>
+          Назад
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -21,6 +49,10 @@ export function Lobby({ busy, onQuickPlay, onCreate, onJoin }: Props) {
 
       <button className="button primary" disabled={busy} onClick={onQuickPlay}>
         Найти соперника
+      </button>
+
+      <button className="button" disabled={busy} onClick={() => setChoosingBot(true)}>
+        Играть с ботом
       </button>
 
       <div className="divider">или сыграть с другом</div>

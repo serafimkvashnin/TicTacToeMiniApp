@@ -3,6 +3,10 @@ import { getInitData } from '../telegram'
 
 export type Mark = 'X' | 'O'
 
+export type RoomKind = 'Private' | 'Public' | 'Bot'
+
+export type BotDifficulty = 'Easy' | 'Medium' | 'Hard'
+
 export type Player = {
   id: number
   name: string
@@ -22,8 +26,8 @@ export type Game = {
 export type Room = {
   code: string
   capacity: number
-  /** Комната из подбора случайного соперника */
-  isPublic: boolean
+  /** Private — с другом по коду, Public — случайный соперник, Bot — игра с ботом из меню */
+  kind: RoomKind
   players: Player[]
   /** Ваше место в players: у каждого подключения своё */
   yourSeat: number
@@ -81,7 +85,7 @@ function applyRoom(room: Room) {
   if (current && current.code === room.code && room.version < current.version) return
 
   const opponentLeft = current?.code === room.code && room.players.length < current.players.length
-  const leftNotice = room.isPublic ? 'Соперник вышел — ищем нового' : 'Соперник покинул комнату'
+  const leftNotice = room.kind === 'Public' ?'Соперник вышел — ищем нового' : 'Соперник покинул комнату'
   // Новый соперник зашёл — уведомление об ушедшем больше не актуально
   const notice = opponentLeft ? leftNotice : room.game ? null : state.notice
   setState({ room, notice })
@@ -114,6 +118,10 @@ export async function joinRoom(code: string) {
 
 export async function quickPlay() {
   applyRoom(await connection.invoke<Room>('QuickPlay'))
+}
+
+export async function playBot(difficulty: BotDifficulty) {
+  applyRoom(await connection.invoke<Room>('PlayBot', difficulty))
 }
 
 export async function makeMove(cell: number) {

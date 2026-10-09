@@ -143,7 +143,7 @@ public class RoomManagerTests
         var manager = CreateManager();
 
         var waiting = manager.QuickPlay(Alice).For(Alice.ConnectionId);
-        Assert.True(waiting.IsPublic);
+        Assert.Equal(RoomKind.Public, waiting.Kind);
         Assert.Null(waiting.Game);
 
         var matched = manager.QuickPlay(Bob).For(Bob.ConnectionId);
@@ -175,7 +175,7 @@ public class RoomManagerTests
         var room = manager.QuickPlay(Bob).For(Bob.ConnectionId);
 
         Assert.NotEqual(privateCode, room.Code);
-        Assert.True(room.IsPublic);
+        Assert.Equal(RoomKind.Public, room.Kind);
         Assert.Null(room.Game);
     }
 

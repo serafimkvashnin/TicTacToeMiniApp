@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
+using TicTacToe.Server.Bots;
+using TicTacToe.Server.Gameplay;
 using TicTacToe.Server.Rooms;
 using TicTacToe.Server.Telegram;
 
@@ -9,7 +11,11 @@ public interface IGameClient
     Task RoomUpdated(RoomDto room);
 }
 
-public sealed class GameHub(RoomManager rooms, TelegramAuthenticator authenticator, ILogger<GameHub> logger)
+public sealed class GameHub(
+    RoomManager rooms,
+    BotDriver bots,
+    TelegramAuthenticator authenticator,
+    ILogger<GameHub> logger)
     : Hub<IGameClient>
 {
     private const string UserKey = "user";
@@ -55,6 +61,12 @@ public sealed class GameHub(RoomManager rooms, TelegramAuthenticator authenticat
         return await Apply(() => rooms.QuickPlay(CurrentPlayer));
     }
 
+    public async Task<RoomDto> PlayBot(BotDifficulty difficulty)
+    {
+        await LeaveCurrentRoom();
+        return await Apply(() => rooms.PlayBot(CurrentPlayer, difficulty));
+    }
+
     public Task<RoomDto> MakeMove(int cell) => Apply(() => rooms.MakeMove(Context.ConnectionId, cell));
 
     public Task<RoomDto> Rematch() => Apply(() => rooms.Rematch(Context.ConnectionId));
@@ -75,10 +87,16 @@ public sealed class GameHub(RoomManager rooms, TelegramAuthenticator authenticat
         }
 
         await NotifyOthers(update);
+        bots.OnRoomChanged(update.Code);
         return update.For(Context.ConnectionId);
     }
 
-    private Task LeaveCurrentRoom() => NotifyOthers(rooms.Leave(Context.ConnectionId));
+    private async Task LeaveCurrentRoom()
+    {
+        var update = rooms.Leave(Context.ConnectionId);
+        await NotifyOthers(update);
+        bots.OnRoomChanged(update.Code);
+    }
 
     private Task NotifyOthers(RoomUpdate update) => Task.WhenAll(update.Views
         .Where(v => v.ConnectionId != Context.ConnectionId)

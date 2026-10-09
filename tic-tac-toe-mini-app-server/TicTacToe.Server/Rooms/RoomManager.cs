@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
+using TicTacToe.Server.Bots;
 using TicTacToe.Server.Gameplay;
 
 namespace TicTacToe.Server.Rooms;
@@ -27,7 +28,7 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
     {
         lock (_lock)
         {
-            return CreateRoom(host, isPublic: false).Commit();
+            return CreateRoom(host, RoomKind.Private).Commit();
         }
     }
 
@@ -37,8 +38,8 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
 
         lock (_lock)
         {
-            // В публичные комнаты попадают только через подбор: по коду их как будто нет
-            if (!_rooms.TryGetValue(code, out var room) || room.IsPublic)
+            // По коду можно попасть только в приватную комнату: остальных как будто нет
+            if (!_rooms.TryGetValue(code, out var room) || room.Kind != RoomKind.Private)
                 throw new RoomException("Комната не найдена");
 
             if (!CanMatch(room, player))
@@ -65,9 +66,20 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
                 .MinBy(r => r.WaitingSince);
 
             if (room is null)
-                return CreateRoom(player, isPublic: true).Commit();
+                return CreateRoom(player, RoomKind.Public).Commit();
 
             AddPlayer(room, player);
+            return room.Commit();
+        }
+    }
+
+    /// <summary>Партия с ботом «Bot» выбранной сложности, начинается сразу.</summary>
+    public RoomUpdate PlayBot(Player player, BotDifficulty difficulty)
+    {
+        lock (_lock)
+        {
+            var room = CreateRoom(player, RoomKind.Bot);
+            AddPlayer(room, CreateBot(BotNames.Visible, new BotProfile(difficulty, Disguised: false)));
             return room.Commit();
         }
     }
@@ -80,19 +92,7 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
             if (!_roomByConnection.Remove(connectionId, out var room))
                 return RoomUpdate.Empty;
 
-            room.Players.RemoveAll(p => p.ConnectionId == connectionId);
-            // Без соперника партия не продолжается: новая начнётся, когда кто-то зайдёт
-            room.AbortGame();
-
-            if (room.Players.Count == 0)
-            {
-                _rooms.Remove(room.Code);
-                return RoomUpdate.Empty;
-            }
-
-            // Оставшийся игрок снова ждёт соперника — в конце очереди подбора
-            room.WaitingSince = ++_waitingCounter;
-            return room.Commit();
+            return RemovePlayer(room, connectionId);
         }
     }
 
@@ -138,22 +138,118 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
-    private Room CreateRoom(Player host, bool isPublic)
+    // ---------- Боты ----------
+
+    /// <summary>Что боту предстоит сделать в комнате, или null, если ничего.</summary>
+    public BotTask? NextBotTask(string code)
     {
-        var room = new Room(GenerateCode(), isPublic) { WaitingSince = ++_waitingCounter };
+        lock (_lock)
+        {
+            if (!_rooms.TryGetValue(code, out var room))
+                return null;
+
+            if (room.IsPublic && room.Players is [{ IsBot: false }] && room.Game is null)
+                return new FillWithBotTask(code, room.WaitingSince);
+
+            if (room.PlayerToMove is { IsBot: true })
+                return new BotMoveTask(code, room.Version);
+
+            if (room.Game is { Status: not GameStatus.Playing } && room.Players.Any(p => p.Bot is { Disguised: true }))
+                return new BotAfterGameTask(code, room.Version);
+
+            return null;
+        }
+    }
+
+    /// <summary>Подсаживает замаскированного бота, если игрок всё ещё ждёт с того же момента.</summary>
+    public RoomUpdate TryFillWithBot(FillWithBotTask task, Random random)
+    {
+        lock (_lock)
+        {
+            if (!_rooms.TryGetValue(task.Code, out var room) || room.IsFull || room.WaitingSince != task.WaitingSince)
+                return RoomUpdate.Empty;
+
+            var difficulty = (BotDifficulty)random.Next(Enum.GetValues<BotDifficulty>().Length);
+            AddPlayer(room, CreateBot(BotNames.CreateUser(random), new BotProfile(difficulty, Disguised: true)));
+            return room.Commit();
+        }
+    }
+
+    public RoomUpdate TryBotMove(BotMoveTask task, Random random)
+    {
+        lock (_lock)
+        {
+            if (!_rooms.TryGetValue(task.Code, out var room) || room.Version != task.Version)
+                return RoomUpdate.Empty;
+
+            if (room.PlayerToMove is not { Bot: { } bot } || room.Game is not { } game)
+                return RoomUpdate.Empty;
+
+            game.Move(game.Turn, TicTacToeAi.ChooseMove(game.Board, game.Turn, bot.Difficulty, random));
+            return room.Commit();
+        }
+    }
+
+    /// <summary>Замаскированный бот после партии уходит (как живой игрок) или начинает реванш.</summary>
+    public RoomUpdate TryBotAfterGame(BotAfterGameTask task, bool leave)
+    {
+        lock (_lock)
+        {
+            if (!_rooms.TryGetValue(task.Code, out var room) || room.Version != task.Version)
+                return RoomUpdate.Empty;
+
+            var bot = room.Players.FirstOrDefault(p => p.Bot is { Disguised: true });
+            if (bot is null || room.Game is not { Status: not GameStatus.Playing })
+                return RoomUpdate.Empty;
+
+            if (leave)
+                return RemovePlayer(room, bot.ConnectionId);
+
+            room.StartGame(xSeat: 1 - room.XSeat);
+            return room.Commit();
+        }
+    }
+
+    // ---------- Внутреннее ----------
+
+    private Room CreateRoom(Player host, RoomKind kind)
+    {
+        var room = new Room(GenerateCode(), kind) { WaitingSince = ++_waitingCounter };
         room.Players.Add(host);
         _rooms[room.Code] = room;
         _roomByConnection[host.ConnectionId] = room;
         return room;
     }
 
+    private static Player CreateBot(Telegram.TelegramUser user, BotProfile profile) =>
+        new($"bot:{Guid.NewGuid():N}", user, profile);
+
     private void AddPlayer(Room room, Player player)
     {
         room.Players.Add(player);
-        _roomByConnection[player.ConnectionId] = room;
+        if (!player.IsBot)
+            _roomByConnection[player.ConnectionId] = room;
 
         if (room.IsFull)
             room.StartGame(xSeat: Random.Shared.Next(Room.Capacity));
+    }
+
+    private RoomUpdate RemovePlayer(Room room, string connectionId)
+    {
+        room.Players.RemoveAll(p => p.ConnectionId == connectionId);
+        // Без соперника партия не продолжается: новая начнётся, когда кто-то зайдёт
+        room.AbortGame();
+
+        // Боты без живых игроков не нужны
+        if (room.Players.All(p => p.IsBot))
+        {
+            _rooms.Remove(room.Code);
+            return RoomUpdate.Empty;
+        }
+
+        // Оставшийся игрок снова ждёт соперника — в конце очереди подбора
+        room.WaitingSince = ++_waitingCounter;
+        return room.Commit();
     }
 
     /// <summary>Один пользователь Telegram не может играть сам с собой, если это не разрешено настройкой.</summary>

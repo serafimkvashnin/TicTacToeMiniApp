@@ -71,16 +71,17 @@ export function Screens() {
         <Lobby
           busy={busy}
           onQuickPlay={() => run(game.quickPlay)}
+          onPlayBot={(difficulty) => run(() => game.playBot(difficulty))}
           onCreate={() => run(game.createRoom)}
           onJoin={(code) => run(() => game.joinRoom(code))}
         />
       )}
 
-      {status === 'connected' && room && !room.game && room.isPublic && (
+      {status === 'connected' && room && !room.game && room.kind === 'Public' && (
         <SearchingView busy={busy} onCancel={leave} />
       )}
 
-      {status === 'connected' && room && !room.game && !room.isPublic && (
+      {status === 'connected' && room && !room.game && room.kind === 'Private' && (
         <RoomView room={room} busy={busy} onLeave={leave} />
       )}
 
