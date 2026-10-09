@@ -139,6 +139,19 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
+    /// <summary>
+    /// Код комнаты для приглашения: только своя приватная комната, которая ещё ждёт второго игрока; иначе null.
+    /// </summary>
+    public string? InviteCodeFor(string connectionId)
+    {
+        lock (_lock)
+        {
+            return _roomByConnection.TryGetValue(connectionId, out var room) && room.Kind == RoomKind.Private && !room.IsFull
+                ? room.Code
+                : null;
+        }
+    }
+
     /// <summary>Кому показать стикер игрока: его место и живые игроки комнаты (включая его самого).</summary>
     public EmoteTargets? EmoteTargetsFor(string connectionId)
     {

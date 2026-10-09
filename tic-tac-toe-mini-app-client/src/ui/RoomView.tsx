@@ -1,5 +1,6 @@
-import type { Room } from '../net/gameClient'
-import { shareLink } from '../telegram'
+import { useState } from 'react'
+import { prepareInvite, type Room } from '../net/gameClient'
+import { shareLink, shareMessage, supportsShareMessage } from '../telegram'
 
 const BOT_APP_URL = import.meta.env.VITE_BOT_APP_URL
 
@@ -12,8 +13,24 @@ type Props = {
 /** Комната до начала партии: ждём второго игрока */
 export function RoomView({ room, busy, onLeave }: Props) {
   const emptySlots = room.capacity - room.players.length
+  const [preparing, setPreparing] = useState(false)
 
-  const invite = () => shareLink(`${BOT_APP_URL}?startapp=${room.code}`, 'Сыграем в крестики-нолики?')
+  // Карточка с кнопкой «Присоединиться» через окно «Поделиться»; если Telegram старый
+  // или подготовить не вышло — обычная ссылка, которая откроет игру в комнате
+  const invite = async () => {
+    if (supportsShareMessage()) {
+      setPreparing(true)
+      try {
+        shareMessage(await prepareInvite())
+        return
+      } catch {
+        // дальше — запасной вариант со ссылкой
+      } finally {
+        setPreparing(false)
+      }
+    }
+    shareLink(`${BOT_APP_URL}?startapp=${room.code}`, 'Сыграем в крестики-нолики?')
+  }
 
   return (
     <div className="panel">
@@ -39,7 +56,7 @@ export function RoomView({ room, busy, onLeave }: Props) {
       {/* В один ряд, чтобы плашка была той же высоты, что и в остальных разделах меню */}
       <div className="button-row">
         {BOT_APP_URL && (
-          <button className="button primary" onClick={invite}>
+          <button className="button primary" disabled={preparing} onClick={invite}>
             Пригласить
           </button>
         )}

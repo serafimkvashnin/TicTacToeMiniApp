@@ -226,6 +226,27 @@ public class RoomManagerTests
     }
 
     [Fact]
+    public void Invite_code_only_for_own_private_room_waiting_for_opponent()
+    {
+        var manager = CreateManager();
+        Assert.Null(manager.InviteCodeFor(Alice.ConnectionId));
+
+        var code = manager.Create(Alice).For(Alice.ConnectionId).Code;
+        Assert.Equal(code, manager.InviteCodeFor(Alice.ConnectionId));
+
+        // Комната заполнилась — приглашать больше некуда
+        manager.Join(code, Bob);
+        Assert.Null(manager.InviteCodeFor(Alice.ConnectionId));
+
+        // В публичную комнату и в игру с ботом не приглашают
+        var other = CreateManager();
+        other.QuickPlay(Carol);
+        Assert.Null(other.InviteCodeFor(Carol.ConnectionId));
+        other.PlayBot(Bob, Gameplay.BotDifficulty.Easy);
+        Assert.Null(other.InviteCodeFor(Bob.ConnectionId));
+    }
+
+    [Fact]
     public void Last_player_leaving_deletes_room()
     {
         var manager = CreateManager();

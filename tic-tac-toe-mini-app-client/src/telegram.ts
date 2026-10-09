@@ -21,6 +21,15 @@ export function shareLink(url: string, text: string) {
   else window.open(shareUrl, '_blank')
 }
 
+/** Окно «Поделиться» для сообщения, подготовленного ботом (Bot API 8.0+) */
+export function supportsShareMessage(): boolean {
+  return !!tg?.isVersionAtLeast('8.0')
+}
+
+export function shareMessage(preparedMessageId: string) {
+  tg?.shareMessage(preparedMessageId)
+}
+
 /** Чат, канал или пользователь по публичному @username; по id открыть чат из Mini App нельзя */
 export function openTelegramUsername(username: string) {
   const url = `https://t.me/${username}`

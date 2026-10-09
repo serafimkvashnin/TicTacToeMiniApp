@@ -168,6 +168,11 @@ export async function rematch() {
   applyRoom(await connection.invoke<Room>('Rematch'))
 }
 
+/** id карточки-приглашения в текущую комнату для Telegram.WebApp.shareMessage */
+export async function prepareInvite(): Promise<string> {
+  return connection.invoke<string>('PrepareInvite')
+}
+
 export async function leaveRoom() {
   await connection.invoke('LeaveRoom')
   setState({ room: null, notice: null })

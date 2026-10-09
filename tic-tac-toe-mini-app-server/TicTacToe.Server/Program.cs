@@ -17,6 +17,7 @@ try
 
     builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection(TelegramOptions.SectionName));
     builder.Services.AddSingleton<TelegramAuthenticator>();
+    builder.Services.AddHttpClient<TelegramBotApi>();
     builder.Services.Configure<RoomOptions>(builder.Configuration.GetSection(RoomOptions.SectionName));
     builder.Services.AddSingleton<RoomManager>();
     builder.Services.AddSingleton<BotDriver>();

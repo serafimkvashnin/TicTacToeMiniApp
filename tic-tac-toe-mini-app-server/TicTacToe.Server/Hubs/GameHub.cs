@@ -19,6 +19,7 @@ public sealed class GameHub(
     BotDriver bots,
     EmoteLimiter emoteLimiter,
     TelegramAuthenticator authenticator,
+    TelegramBotApi botApi,
     ILogger<GameHub> logger)
     : Hub<IGameClient>
 {
@@ -129,6 +130,30 @@ public sealed class GameHub(
     public Task<RoomDto> Rematch() => Apply(() => rooms.Rematch(Context.ConnectionId));
 
     public Task LeaveRoom() => LeaveCurrentRoom();
+
+    /// <summary>
+    /// Готовит карточку-приглашение в свою комнату; клиент делится ей через Telegram.WebApp.shareMessage.
+    /// </summary>
+    /// <returns>id подготовленного сообщения.</returns>
+    public async Task<string> PrepareInvite()
+    {
+        var code = rooms.InviteCodeFor(Context.ConnectionId)
+            ?? throw new HubException("Пригласить можно только в свою комнату, пока она ждёт соперника");
+
+        // Гости из режима разработки — не пользователи Telegram, им Bot API ничего не подготовит
+        if (CurrentUser.Id <= 0)
+            throw new HubException("Приглашение доступно только в Telegram");
+
+        try
+        {
+            return await botApi.PrepareRoomInviteAsync(CurrentUser.Id, code, Context.ConnectionAborted);
+        }
+        catch (Exception e) when (e is TelegramApiException or HttpRequestException)
+        {
+            logger.LogError(e, "Failed to prepare invite to room {RoomCode} for user {UserId}", code, CurrentUser.Id);
+            throw new HubException("Не удалось подготовить приглашение");
+        }
+    }
 
     /// <summary>Стикер видят оба игрока: он вылетает из плашки отправителя. Слишком частые молча отбрасываются.</summary>
     public async Task SendEmote(string emote)
