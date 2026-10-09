@@ -68,3 +68,6 @@ public sealed record BotMoveTask(string Code, int Version) : BotTask(Code);
 
 /// <summary>Партия с замаскированным ботом закончилась — он решает, уйти или сыграть ещё.</summary>
 public sealed record BotAfterGameTask(string Code, int Version) : BotTask(Code);
+
+/// <summary>Ход игрока в партии с замаскированным ботом — если игрок так и не сходит, бот уйдёт.</summary>
+public sealed record BotIdleLeaveTask(string Code, int Version) : BotTask(Code);

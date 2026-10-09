@@ -36,19 +36,23 @@ public sealed class BotDriver(
             switch (task)
             {
                 case FillWithBotTask fill:
-                    await Task.Delay(_options.QuickPlayBotDelay);
+                    await Task.Delay(_options.QuickPlayBotDelay.Pick(random));
                     update = rooms.TryFillWithBot(fill, random);
                     break;
 
                 case BotMoveTask move:
-                    // «Думает» от полсекунды до двух
-                    await Task.Delay(random.Next(500, 2000));
-                    update = rooms.TryBotMove(move, random);
+                    await Task.Delay(_options.BotMoveDelay.Pick(random));
+                    update = rooms.TryBotMove(move, random, leave: random.NextDouble() < _options.BotMidGameLeaveChance);
                     break;
 
                 case BotAfterGameTask afterGame:
-                    await Task.Delay(random.Next(1500, 4500));
+                    await Task.Delay(_options.BotAfterGameDelay.Pick(random));
                     update = rooms.TryBotAfterGame(afterGame, leave: random.NextDouble() < _options.BotLeaveChance);
+                    break;
+
+                case BotIdleLeaveTask idle:
+                    await Task.Delay(_options.BotIdleTimeout.Pick(random));
+                    update = rooms.TryBotIdleLeave(idle);
                     break;
 
                 default:

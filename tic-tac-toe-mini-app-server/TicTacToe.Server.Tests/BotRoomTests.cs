@@ -164,6 +164,118 @@ public class BotRoomTests
         Assert.NotEqual(markBefore, room.Players[room.YourSeat].Mark);
     }
 
+    /// <summary>Партия с замаскированным ботом, доведённая до хода игрока.</summary>
+    private static RoomDto DisguisedGameOnHumanTurn(RoomManager manager, Random random)
+    {
+        var code = manager.QuickPlay(Alice).For(Alice.ConnectionId).Code;
+        var room = manager.TryFillWithBot(Assert.IsType<FillWithBotTask>(manager.NextBotTask(code)), random)
+            .For(Alice.ConnectionId);
+
+        if (manager.NextBotTask(code) is BotMoveTask botFirst)
+            room = manager.TryBotMove(botFirst, random).For(Alice.ConnectionId);
+
+        return room;
+    }
+
+    [Fact]
+    public void Disguised_bot_leaves_when_player_is_idle()
+    {
+        var manager = CreateManager();
+        var room = DisguisedGameOnHumanTurn(manager, new Random(21));
+
+        var idle = Assert.IsType<BotIdleLeaveTask>(manager.NextBotTask(room.Code));
+        var afterLeave = manager.TryBotIdleLeave(idle).For(Alice.ConnectionId);
+
+        Assert.Single(afterLeave.Players);
+        Assert.Null(afterLeave.Game);
+        // Игрок снова в поиске
+        Assert.IsType<FillWithBotTask>(manager.NextBotTask(room.Code));
+    }
+
+    [Fact]
+    public void Disguised_bot_stays_if_player_moved_in_time()
+    {
+        var manager = CreateManager();
+        var room = DisguisedGameOnHumanTurn(manager, new Random(22));
+        var idle = Assert.IsType<BotIdleLeaveTask>(manager.NextBotTask(room.Code));
+
+        var free = room.Game!.Board.Select((m, i) => (m, i)).First(x => x.m is null).i;
+        manager.MakeMove(Alice.ConnectionId, free);
+
+        Assert.Null(manager.TryBotIdleLeave(idle).Code);
+    }
+
+    [Fact]
+    public void Disguised_bot_can_quit_mid_game_instead_of_answering_a_move()
+    {
+        var manager = CreateManager();
+        var room = DisguisedGameOnHumanTurn(manager, new Random(24));
+        var free = room.Game!.Board.Select((m, i) => (m, i)).First(x => x.m is null).i;
+        manager.MakeMove(Alice.ConnectionId, free);
+
+        var move = Assert.IsType<BotMoveTask>(manager.NextBotTask(room.Code));
+        var afterQuit = manager.TryBotMove(move, new Random(1), leave: true).For(Alice.ConnectionId);
+
+        Assert.Single(afterQuit.Players);
+        Assert.Null(afterQuit.Game);
+        Assert.IsType<FillWithBotTask>(manager.NextBotTask(room.Code));
+    }
+
+    [Fact]
+    public void Bot_does_not_quit_before_player_made_any_move()
+    {
+        var manager = CreateManager();
+        var random = new Random(25);
+
+        // Ищем расклад, где бот ходит первым
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            var player = Alice with { ConnectionId = $"conn-{attempt}" };
+            var code = manager.QuickPlay(player).For(player.ConnectionId).Code;
+            manager.TryFillWithBot(Assert.IsType<FillWithBotTask>(manager.NextBotTask(code)), random);
+
+            if (manager.NextBotTask(code) is BotMoveTask first)
+            {
+                var room = manager.TryBotMove(first, random, leave: true).For(player.ConnectionId);
+                Assert.Equal(2, room.Players.Count);
+                Assert.Equal(1, room.Game!.Board.Count(c => c is not null));
+                return;
+            }
+
+            manager.Leave(player.ConnectionId);
+        }
+
+        Assert.Fail("bot never got the first move");
+    }
+
+    [Fact]
+    public void Visible_bot_never_quits_mid_game()
+    {
+        var manager = CreateManager();
+        var room = manager.PlayBot(Alice, BotDifficulty.Easy).For(Alice.ConnectionId);
+        if (manager.NextBotTask(room.Code) is BotMoveTask botFirst)
+            room = manager.TryBotMove(botFirst, new Random(26)).For(Alice.ConnectionId);
+
+        var free = room.Game!.Board.Select((m, i) => (m, i)).First(x => x.m is null).i;
+        manager.MakeMove(Alice.ConnectionId, free);
+        var move = Assert.IsType<BotMoveTask>(manager.NextBotTask(room.Code));
+        var after = manager.TryBotMove(move, new Random(27), leave: true).For(Alice.ConnectionId);
+
+        Assert.Equal(2, after.Players.Count);
+        Assert.NotNull(after.Game);
+    }
+
+    [Fact]
+    public void Visible_bot_waits_for_idle_player_forever()
+    {
+        var manager = CreateManager();
+        var room = manager.PlayBot(Alice, BotDifficulty.Easy).For(Alice.ConnectionId);
+        if (manager.NextBotTask(room.Code) is BotMoveTask botFirst)
+            manager.TryBotMove(botFirst, new Random(23));
+
+        Assert.Null(manager.NextBotTask(room.Code));
+    }
+
     [Fact]
     public void Visible_bot_never_leaves_after_game()
     {

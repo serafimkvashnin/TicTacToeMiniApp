@@ -154,8 +154,14 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
             if (room.PlayerToMove is { IsBot: true })
                 return new BotMoveTask(code, room.Version);
 
-            if (room.Game is { Status: not GameStatus.Playing } && room.Players.Any(p => p.Bot is { Disguised: true }))
-                return new BotAfterGameTask(code, room.Version);
+            if (room.Players.Any(p => p.Bot is { Disguised: true }))
+            {
+                if (room.Game is { Status: not GameStatus.Playing })
+                    return new BotAfterGameTask(code, room.Version);
+
+                if (room.PlayerToMove is { IsBot: false })
+                    return new BotIdleLeaveTask(code, room.Version);
+            }
 
             return null;
         }
@@ -175,15 +181,23 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
-    public RoomUpdate TryBotMove(BotMoveTask task, Random random)
+    /// <param name="leave">
+    /// Замаскированный бот уходит вместо ответа на ход игрока, как бросивший партию человек.
+    /// Явный бот и бот, которому ещё не на что отвечать, всё равно ходят.
+    /// </param>
+    public RoomUpdate TryBotMove(BotMoveTask task, Random random, bool leave = false)
     {
         lock (_lock)
         {
             if (!_rooms.TryGetValue(task.Code, out var room) || room.Version != task.Version)
                 return RoomUpdate.Empty;
 
-            if (room.PlayerToMove is not { Bot: { } bot } || room.Game is not { } game)
+            if (room.PlayerToMove is not { Bot: { } bot } botPlayer || room.Game is not { } game)
                 return RoomUpdate.Empty;
+
+            var opponentMoved = game.Board.Any(c => c == TicTacToeGame.Opponent(game.Turn));
+            if (leave && bot.Disguised && opponentMoved)
+                return RemovePlayer(room, botPlayer.ConnectionId);
 
             game.Move(game.Turn, TicTacToeAi.ChooseMove(game.Board, game.Turn, bot.Difficulty, random));
             return room.Commit();
@@ -207,6 +221,23 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
 
             room.StartGame(xSeat: 1 - room.XSeat);
             return room.Commit();
+        }
+    }
+
+    /// <summary>Игрок так и не сходил — замаскированный бот уходит, как ушёл бы заскучавший человек.</summary>
+    public RoomUpdate TryBotIdleLeave(BotIdleLeaveTask task)
+    {
+        lock (_lock)
+        {
+            // Любое действие с тех пор (ход, выход) меняет версию — тогда уходить не нужно
+            if (!_rooms.TryGetValue(task.Code, out var room) || room.Version != task.Version)
+                return RoomUpdate.Empty;
+
+            var bot = room.Players.FirstOrDefault(p => p.Bot is { Disguised: true });
+            if (bot is null || room.PlayerToMove is not { IsBot: false })
+                return RoomUpdate.Empty;
+
+            return RemovePlayer(room, bot.ConnectionId);
         }
     }
 
