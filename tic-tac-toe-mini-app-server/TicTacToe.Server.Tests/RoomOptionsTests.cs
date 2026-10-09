@@ -28,6 +28,30 @@ public class RoomOptionsTests
     }
 
     [Fact]
+    public void Escalating_pick_stays_in_range_and_grows_with_steps()
+    {
+        var range = new IntRange { Min = 1, Max = 6 };
+        var random = new Random(5);
+
+        double Average(int step) => Enumerable.Range(0, 2000).Select(_ => range.PickEscalating(random, step)).Average();
+
+        var all = Enumerable.Range(0, 10).SelectMany(step => Enumerable.Range(0, 300).Select(_ => range.PickEscalating(random, step)));
+        Assert.All(all, n => Assert.InRange(n, 1, 6));
+
+        var first = Average(0);
+        var later = Average(6);
+        Assert.True(first < 2.8, $"first bursts should be short, average {first:F2}");
+        Assert.True(later > first + 1, $"later bursts should be longer: {first:F2} -> {later:F2}");
+    }
+
+    [Fact]
+    public void Escalating_pick_with_single_value_range()
+    {
+        Assert.Equal(3, new IntRange { Min = 3, Max = 3 }.PickEscalating(new Random(1), 0));
+        Assert.Equal(3, new IntRange { Min = 3, Max = 1 }.PickEscalating(new Random(1), 5));
+    }
+
+    [Fact]
     public void Ranges_bind_from_appsettings()
     {
         const string json = """
@@ -56,7 +80,13 @@ public class RoomOptionsTests
         var options = new ConfigurationBuilder().AddJsonFile(path).Build()
             .GetSection(RoomOptions.SectionName).Get<RoomOptions>()!;
 
-        foreach (var range in new[] { options.QuickPlayBotDelay, options.BotMoveDelay, options.BotAfterGameDelay, options.BotIdleTimeout })
+        Assert.InRange(options.BotEmoteTaps.Min, 1, options.BotEmoteTaps.Max);
+
+        foreach (var range in new[]
+                 {
+                     options.QuickPlayBotDelay, options.BotMoveDelay, options.BotAfterGameDelay, options.BotIdleTimeout,
+                     options.BotEmoteIdleDelay, options.BotEmoteInterval, options.BotEmoteTapGap,
+                 })
         {
             Assert.True(range.Min > TimeSpan.Zero);
             Assert.True(range.Max >= range.Min);

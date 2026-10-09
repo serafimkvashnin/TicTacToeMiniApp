@@ -28,11 +28,20 @@ public sealed class RoomOptions
     /// <summary>Сколько игрок может думать над ходом, прежде чем бот начнёт его торопить стикерами.</summary>
     public TimeRange BotEmoteIdleDelay { get; set; } = TimeRange.Seconds(8, 12);
 
-    /// <summary>Как часто бот решает, кинуть ли стикер, пока игрок продолжает думать.</summary>
+    /// <summary>Пауза между сериями тапов, пока игрок продолжает думать.</summary>
     public TimeRange BotEmoteInterval { get; set; } = TimeRange.Seconds(2, 3);
 
-    /// <summary>Вероятность (0–1) кинуть стикер при каждой такой проверке. 0 — боты стикеры не кидают.</summary>
+    /// <summary>Вероятность (0–1) начать очередную серию тапов. 0 — боты стикеры не кидают.</summary>
     public double BotEmoteChance { get; set; } = 0.9;
+
+    /// <summary>
+    /// Сколько стикеров в одной серии тапов. Первые серии обычно короткие,
+    /// а чем дольше игрок тянет, тем ближе серии к максимуму.
+    /// </summary>
+    public IntRange BotEmoteTaps { get; set; } = new() { Min = 1, Max = 6 };
+
+    /// <summary>Пауза между тапами внутри серии — с такой скоростью тапает палец.</summary>
+    public TimeRange BotEmoteTapGap { get; set; } = TimeRange.Seconds(0.08, 0.22);
 
     /// <summary>Вероятность (0–1), что замаскированный бот уйдёт после партии, а не сыграет ещё.</summary>
     public double BotLeaveChance { get; set; } = 0.5;
@@ -64,4 +73,26 @@ public sealed class TimeRange
 
     /// <summary>Случайное значение в диапазоне; если Max не больше Min — ровно Min.</summary>
     public TimeSpan Pick(Random random) => Max <= Min ? Min : Min + (Max - Min) * random.NextDouble();
+}
+
+/// <summary>Диапазон целых чисел; в конфиге задаётся как { "Min": 1, "Max": 6 }.</summary>
+public sealed class IntRange
+{
+    public int Min { get; set; }
+    public int Max { get; set; }
+
+    /// <summary>
+    /// Случайное число от Min до Max включительно, смещённое к Min на ранних шагах:
+    /// при step = 0 чаще выпадают маленькие значения, с ростом step — всё ближе к Max.
+    /// </summary>
+    public int PickEscalating(Random random, int step)
+    {
+        if (Max <= Min)
+            return Min;
+
+        // Степень больше 1 прижимает случайное число к нулю, меньше 1 — к единице
+        var exponent = Math.Max(0.5, 2.0 - 0.35 * step);
+        var r = Math.Pow(random.NextDouble(), exponent);
+        return Min + (int)Math.Min(Max - Min, Math.Floor(r * (Max - Min + 1)));
+    }
 }

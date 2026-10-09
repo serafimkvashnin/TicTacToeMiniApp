@@ -32,7 +32,8 @@ public sealed class BotDriver(
     }
 
     /// <summary>
-    /// Игрок думает над ходом: после паузы бот время от времени кидает стикер.
+    /// Игрок думает над ходом: после паузы бот тапает по стикеру сериями, как нетерпеливый человек —
+    /// то разок, то несколько раз подряд, и чем дольше ждёт, тем серии длиннее.
     /// Цикл заканчивается сам, как только игрок сходил, вышел или бот ушёл.
     /// </summary>
     private async Task NagAsync(BotEmoteTask task)
@@ -42,10 +43,23 @@ public sealed class BotDriver(
             var random = Random.Shared;
             await Task.Delay(_options.BotEmoteIdleDelay.Pick(random));
 
-            while (rooms.BotEmoteTargets(task) is { } targets)
+            var burst = 0;
+            while (rooms.BotEmoteTargets(task) is not null)
             {
                 if (random.NextDouble() < _options.BotEmoteChance)
-                    await hub.Clients.Clients(targets.Recipients).Emote(targets.Seat, Emotes.Impatient);
+                {
+                    var taps = _options.BotEmoteTaps.PickEscalating(random, burst++);
+                    for (var tap = 0; tap < taps; tap++)
+                    {
+                        // Игрок мог сходить посреди серии — тогда сразу перестаём
+                        if (rooms.BotEmoteTargets(task) is not { } targets)
+                            return;
+
+                        await hub.Clients.Clients(targets.Recipients).Emote(targets.Seat, Emotes.Impatient);
+                        if (tap < taps - 1)
+                            await Task.Delay(_options.BotEmoteTapGap.Pick(random));
+                    }
+                }
 
                 await Task.Delay(_options.BotEmoteInterval.Pick(random));
             }
