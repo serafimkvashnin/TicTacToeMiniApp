@@ -33,15 +33,21 @@ public class RoomOptionsTests
         var range = new IntRange { Min = 1, Max = 6 };
         var random = new Random(5);
 
-        double Average(int step) => Enumerable.Range(0, 2000).Select(_ => range.PickEscalating(random, step)).Average();
-
         var all = Enumerable.Range(0, 10).SelectMany(step => Enumerable.Range(0, 300).Select(_ => range.PickEscalating(random, step)));
         Assert.All(all, n => Assert.InRange(n, 1, 6));
 
-        var first = Average(0);
-        var later = Average(6);
-        Assert.True(first < 2.8, $"first bursts should be short, average {first:F2}");
-        Assert.True(later > first + 1, $"later bursts should be longer: {first:F2} -> {later:F2}");
+        int[] Picks(int step) => Enumerable.Range(0, 4000).Select(_ => range.PickEscalating(random, step)).ToArray();
+        double Share(int[] picks, Func<int, bool> match) => picks.Count(match) / (double)picks.Length;
+
+        var first = Picks(0);
+        var later = Picks(20);
+
+        // В начале большинство серий — одиночный тап, длинные редки
+        Assert.InRange(Share(first, n => n == 1), 0.5, 0.7);
+        Assert.InRange(Share(first, n => n >= 4), 0.1, 0.25);
+        // С ожиданием серии растут, но длинные так и остаются меньшинством
+        Assert.True(later.Average() > first.Average() + 0.4, $"{first.Average():F2} -> {later.Average():F2}");
+        Assert.InRange(Share(later, n => n >= 4), 0.25, 0.45);
     }
 
     [Fact]

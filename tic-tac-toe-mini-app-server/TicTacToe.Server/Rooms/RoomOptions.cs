@@ -32,7 +32,7 @@ public sealed class RoomOptions
     public TimeRange BotEmoteInterval { get; set; } = TimeRange.Seconds(2, 3);
 
     /// <summary>Вероятность (0–1) начать очередную серию тапов. 0 — боты стикеры не кидают.</summary>
-    public double BotEmoteChance { get; set; } = 0.9;
+    public double BotEmoteChance { get; set; } = 0.4;
 
     /// <summary>
     /// Сколько стикеров в одной серии тапов. Первые серии обычно короткие,
@@ -41,7 +41,7 @@ public sealed class RoomOptions
     public IntRange BotEmoteTaps { get; set; } = new() { Min = 1, Max = 6 };
 
     /// <summary>Пауза между тапами внутри серии — с такой скоростью тапает палец.</summary>
-    public TimeRange BotEmoteTapGap { get; set; } = TimeRange.Seconds(0.08, 0.22);
+    public TimeRange BotEmoteTapGap { get; set; } = TimeRange.Seconds(0.2, 0.4);
 
     /// <summary>Вероятность (0–1), что замаскированный бот уйдёт после партии, а не сыграет ещё.</summary>
     public double BotLeaveChance { get; set; } = 0.5;
@@ -90,8 +90,9 @@ public sealed class IntRange
         if (Max <= Min)
             return Min;
 
-        // Степень больше 1 прижимает случайное число к нулю, меньше 1 — к единице
-        var exponent = Math.Max(0.5, 2.0 - 0.35 * step);
+        // Степень больше 1 прижимает случайное число к нулю: в начале ~60% серий — один тап,
+        // и даже при долгом ожидании длинные серии остаются скорее исключением
+        var exponent = Math.Max(1.5, 3.5 - 0.25 * step);
         var r = Math.Pow(random.NextDouble(), exponent);
         return Min + (int)Math.Min(Max - Min, Math.Floor(r * (Max - Min + 1)));
     }
