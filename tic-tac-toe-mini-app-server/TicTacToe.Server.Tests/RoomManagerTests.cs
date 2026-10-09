@@ -50,6 +50,7 @@ public class RoomManagerTests
         var code = manager.Create(Alice).For(Alice.ConnectionId).Code;
 
         Assert.Equal("Комната не найдена", Assert.Throws<RoomException>(() => manager.Join("ZZZZZ", Bob)).Message);
+        Assert.Equal("Комната не найдена", Assert.Throws<RoomException>(() => manager.Join(null, Bob)).Message);
 
         var aliceAgain = Alice with { ConnectionId = "conn-alice-2" };
         Assert.Equal("Вы уже в этой комнате", Assert.Throws<RoomException>(() => manager.Join(code, aliceAgain)).Message);

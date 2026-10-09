@@ -22,12 +22,17 @@ public sealed class GameHub(
     ILogger<GameHub> logger)
     : Hub<IGameClient>
 {
-    private const string UserKey = "user";
+    internal const string UserKey = "user";
+
+    private const string ClientErrorCountKey = "clientErrors";
+    private const int MaxClientErrorsPerConnection = 20;
 
     /// <summary>Какие стикеры можно отправлять; картинку для каждого рисует клиент.</summary>
     private static readonly HashSet<string> AllowedEmotes = ["impatient"];
 
-    private Player CurrentPlayer => new(Context.ConnectionId, (TelegramUser)Context.Items[UserKey]!);
+    private TelegramUser CurrentUser => (TelegramUser)Context.Items[UserKey]!;
+
+    private Player CurrentPlayer => new(Context.ConnectionId, CurrentUser);
 
     public override async Task OnConnectedAsync()
     {
@@ -41,39 +46,85 @@ public sealed class GameHub(
         }
 
         Context.Items[UserKey] = user;
+        logger.LogInformation("User {UserId} ({UserName}) connected, connection {ConnectionId}",
+            user.Id, user.DisplayName, Context.ConnectionId);
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         emoteLimiter.Forget(Context.ConnectionId);
-        await LeaveCurrentRoom();
+
+        // Отклонённое подключение: пользователя нет и в комнатах его тоже нет
+        if (Context.Items[UserKey] is TelegramUser user)
+        {
+            if (exception is null)
+                logger.LogInformation("User {UserId} ({UserName}) disconnected", user.Id, user.DisplayName);
+            else
+                logger.LogWarning(exception, "User {UserId} ({UserName}) connection lost", user.Id, user.DisplayName);
+
+            await LeaveCurrentRoom();
+        }
+
         await base.OnDisconnectedAsync(exception);
     }
 
     public async Task<RoomDto> CreateRoom()
     {
         await LeaveCurrentRoom();
-        return rooms.Create(CurrentPlayer).For(Context.ConnectionId);
+        var room = rooms.Create(CurrentPlayer).For(Context.ConnectionId);
+        LogRoomAction("created a room", room);
+        return room;
     }
 
-    public async Task<RoomDto> JoinRoom(string code)
+    public async Task<RoomDto> JoinRoom(string? code)
     {
         await LeaveCurrentRoom();
-        return await Apply(() => rooms.Join(code, CurrentPlayer));
+        var room = await Apply(() => rooms.Join(code, CurrentPlayer));
+        LogRoomAction("joined a room by code", room);
+        return room;
     }
 
     public async Task<RoomDto> QuickPlay()
     {
         await LeaveCurrentRoom();
-        return await Apply(() => rooms.QuickPlay(CurrentPlayer));
+        var room = await Apply(() => rooms.QuickPlay(CurrentPlayer));
+        LogRoomAction(room.Game is null ? "started searching for an opponent" : "found an opponent", room);
+        return room;
     }
 
     public async Task<RoomDto> PlayBot(BotDifficulty difficulty)
     {
         await LeaveCurrentRoom();
-        return await Apply(() => rooms.PlayBot(CurrentPlayer, difficulty));
+        var room = await Apply(() => rooms.PlayBot(CurrentPlayer, difficulty));
+        LogRoomAction($"started a {difficulty} bot game", room);
+        return room;
     }
+
+    /// <summary>
+    /// Ошибка JS у игрока: иначе мы бы о ней никогда не узнали.
+    /// Количество с одного подключения ограничено, чтобы сломанный клиент не забил лог.
+    /// </summary>
+    public void ReportClientError(string message, string? stack)
+    {
+        var count = Context.Items.TryGetValue(ClientErrorCountKey, out var value) ? (int)value! : 0;
+        if (count >= MaxClientErrorsPerConnection)
+            return;
+        Context.Items[ClientErrorCountKey] = count + 1;
+
+        var userAgent = Context.GetHttpContext()?.Request.Headers.UserAgent.ToString();
+        logger.LogWarning(
+            "Client error from user {UserId} ({UserName}): {ErrorMessage}{NewLine}User agent: {UserAgent}{NewLine}{Stack}",
+            CurrentUser.Id, CurrentUser.DisplayName, Truncate(message, 1000),
+            Environment.NewLine, userAgent, Environment.NewLine, Truncate(stack, 4000));
+    }
+
+    private void LogRoomAction(string action, RoomDto room) =>
+        logger.LogInformation("User {UserId} ({UserName}) {Action}: room {RoomCode} ({RoomKind})",
+            CurrentUser.Id, CurrentUser.DisplayName, action, room.Code, room.Kind.ToString());
+
+    private static string? Truncate(string? text, int max) =>
+        text is null || text.Length <= max ? text : text[..max] + "…";
 
     public Task<RoomDto> MakeMove(int cell) => Apply(() => rooms.MakeMove(Context.ConnectionId, cell));
 

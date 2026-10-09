@@ -119,10 +119,30 @@ export async function connect() {
   try {
     await connection.start()
     setState({ status: 'connected' })
+    flushClientErrors()
   } catch {
     setState({ status: 'disconnected' })
   }
 }
+
+// Ошибки, случившиеся до подключения, ждут здесь (немного — чтобы не копить бесконечно)
+const MAX_PENDING_ERRORS = 10
+const pendingErrors: { message: string; stack?: string }[] = []
+
+/** Отправляет ошибку клиента в серверный лог; без соединения — откладывает до подключения */
+export function reportClientError(message: string, stack?: string) {
+  if (connection.state === signalR.HubConnectionState.Connected) {
+    connection.invoke('ReportClientError', message, stack ?? null).catch(() => {})
+  } else if (pendingErrors.length < MAX_PENDING_ERRORS) {
+    pendingErrors.push({ message, stack })
+  }
+}
+
+function flushClientErrors() {
+  pendingErrors.splice(0).forEach((e) => reportClientError(e.message, e.stack))
+}
+
+connection.onreconnected(flushClientErrors)
 
 export async function createRoom() {
   applyRoom(await connection.invoke<Room>('CreateRoom'))

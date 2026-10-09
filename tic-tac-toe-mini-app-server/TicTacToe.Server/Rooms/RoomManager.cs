@@ -32,9 +32,10 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
-    public RoomUpdate Join(string code, Player player)
+    public RoomUpdate Join(string? code, Player player)
     {
-        code = code.Trim().ToUpperInvariant();
+        // Клиент может прислать что угодно, в том числе null
+        code = (code ?? "").Trim().ToUpperInvariant();
 
         lock (_lock)
         {
