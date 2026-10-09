@@ -56,7 +56,11 @@ public class EmoteTests
     {
         var manager = new RoomManager(Options.Create(new RoomOptions()));
         var random = new Random(31);
-        var room = manager.PlayBot(Alice, BotDifficulty.Hard).For(Alice.ConnectionId);
+
+        // Бот, подставленный вместо живого соперника
+        var code = manager.QuickPlay(Alice).For(Alice.ConnectionId).Code;
+        var room = manager.TryFillWithBot(Assert.IsType<FillWithBotTask>(manager.NextBotTask(code)), random)
+            .For(Alice.ConnectionId);
         if (manager.NextBotTask(room.Code) is BotMoveTask botFirst)
             room = manager.TryBotMove(botFirst, random).For(Alice.ConnectionId);
 
@@ -70,6 +74,19 @@ public class EmoteTests
         var free = room.Game!.Board.Select((m, i) => (m, i)).First(x => x.m is null).i;
         manager.MakeMove(Alice.ConnectionId, free);
         Assert.Null(manager.BotEmoteTargets(task));
+        Assert.Null(manager.NextBotEmoteTask(room.Code));
+    }
+
+    [Fact]
+    public void Bot_chosen_in_menu_never_nags()
+    {
+        var manager = new RoomManager(Options.Create(new RoomOptions()));
+        var room = manager.PlayBot(Alice, BotDifficulty.Hard).For(Alice.ConnectionId);
+        if (manager.NextBotTask(room.Code) is BotMoveTask botFirst)
+            room = manager.TryBotMove(botFirst, new Random(32)).For(Alice.ConnectionId);
+
+        // Ход Алисы, но бот из меню не торопит
+        Assert.Equal(room.Players[room.YourSeat].Mark, room.Game!.Turn);
         Assert.Null(manager.NextBotEmoteTask(room.Code));
     }
 

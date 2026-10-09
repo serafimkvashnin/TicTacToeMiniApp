@@ -181,7 +181,7 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
-    /// <summary>Ход живого игрока против бота — бот может торопить его стикерами; иначе null.</summary>
+    /// <summary>Ход живого игрока против замаскированного бота — бот может торопить его стикерами; иначе null.</summary>
     public BotEmoteTask? NextBotEmoteTask(string code)
     {
         lock (_lock)
@@ -206,8 +206,9 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
+    // Торопит только бот, подставленный вместо человека: бот из меню ведёт себя как программа и не кидает стикеры
     private static bool IsHumanThinkingAgainstBot(Room room) =>
-        room.PlayerToMove is { IsBot: false } && room.Players.Any(p => p.IsBot);
+        room.PlayerToMove is { IsBot: false } && room.Players.Any(p => p.Bot is { Disguised: true });
 
     /// <summary>Подсаживает замаскированного бота, если игрок всё ещё ждёт с того же момента.</summary>
     public RoomUpdate TryFillWithBot(FillWithBotTask task, Random random)
