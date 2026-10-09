@@ -15,6 +15,16 @@ export function setChromeColors(header: string, background: string) {
   tg?.setBackgroundColor(background)
 }
 
+/** Вызывает cb, когда заставка студии из index.html начнёт исчезать (или сразу, если её нет) */
+export function afterSplash(cb: () => void): () => void {
+  if (window.__splashDone || !document.getElementById('splash')) {
+    cb()
+    return () => {}
+  }
+  window.addEventListener('splash:done', cb, { once: true })
+  return () => window.removeEventListener('splash:done', cb)
+}
+
 export function shareLink(url: string, text: string) {
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
   if (tg) tg.openTelegramLink(shareUrl)

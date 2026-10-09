@@ -6,3 +6,8 @@ interface ImportMetaEnv {
   /** Ссылка на Mini App, например https://t.me/MyBot/app. Нужна для кнопки «Пригласить» */
   readonly VITE_BOT_APP_URL?: string
 }
+
+interface Window {
+  /** Заставка студии из index.html уже начала исчезать */
+  __splashDone?: boolean
+}

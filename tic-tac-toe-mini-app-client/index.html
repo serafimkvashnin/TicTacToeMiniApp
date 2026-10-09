@@ -8,9 +8,35 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
       html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+      /* Фон совпадает с фоном видео — на экранах другой пропорции поля незаметны */
+      #splash { position: fixed; inset: 0; z-index: 1000; background: #111827; transition: opacity 0.4s ease-out; }
+      #splash.hide { opacity: 0; pointer-events: none; }
+      #splash video { width: 100%; height: 100%; object-fit: contain; }
     </style>
   </head>
   <body>
+    <!-- Заставка студии; видео собирается в проекте NamingIssuesBranding (сцена short) -->
+    <div id="splash"><video src="./splash.mp4" autoplay muted playsinline preload="auto"></video></div>
+    <script>
+      ;(function () {
+        var splash = document.getElementById('splash'), video = splash.firstElementChild, done = false
+        try { Telegram.WebApp.setHeaderColor('#111827'); Telegram.WebApp.setBackgroundColor('#111827') } catch (e) {}
+        // Растворяется поверх игры; App ждёт событие, чтобы перекрасить шапку Telegram
+        function finish() {
+          if (done) return
+          done = true
+          window.__splashDone = true
+          window.dispatchEvent(new Event('splash:done'))
+          splash.classList.add('hide')
+          setTimeout(function () { splash.remove() }, 450)
+        }
+        video.addEventListener('ended', finish)
+        video.addEventListener('error', finish)
+        splash.addEventListener('click', finish)
+        // Видео не началось (медленная сеть, запрет автовоспроизведения) — не держим игрока
+        setTimeout(function () { if (video.paused || video.currentTime === 0) finish() }, 2000)
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
