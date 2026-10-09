@@ -19,7 +19,11 @@ public static class BotNames
     /// <summary>Явный бот из меню «Играть с ботом».</summary>
     public static TelegramUser Visible { get; } = new(0, "Bot", null, null);
 
-    public static TelegramUser CreateUser(Random random)
+    /// <param name="playerLanguage">
+    /// Язык живого игрока: русскоязычным чаще попадаются русские имена, остальным — английские,
+    /// как было бы при подборе среди людей.
+    /// </param>
+    public static TelegramUser CreateUser(Random random, string? playerLanguage = null)
     {
         lock (Lock)
         {
@@ -30,7 +34,8 @@ public static class BotNames
             if (random.NextDouble() < 0.15)
                 return new TelegramUser(id, En.Internet.UserName().Replace('.', '_'), null, null);
 
-            var faker = random.NextDouble() < 0.6 ? Ru : En;
+            var russianShare = Languages.IsRussianSpeaking(playerLanguage) ? 0.8 : 0.15;
+            var faker = random.NextDouble() < russianShare ? Ru : En;
             var gender = random.Next(2) == 0 ? Bogus.DataSets.Name.Gender.Male : Bogus.DataSets.Name.Gender.Female;
 
             var firstName = faker.Name.FirstName(gender);

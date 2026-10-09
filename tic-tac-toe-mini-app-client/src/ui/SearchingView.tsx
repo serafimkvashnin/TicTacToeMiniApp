@@ -1,3 +1,5 @@
+import { t } from '../i18n'
+
 type Props = {
   busy: boolean
   onCancel: () => void
@@ -8,10 +10,10 @@ export function SearchingView({ busy, onCancel }: Props) {
   return (
     <div className="panel status">
       <div className="spinner" aria-hidden="true" />
-      <p className="searching-title">Ищем соперника…</p>
-      <p className="searching-hint">Игра начнётся, как только кто-то нажмёт «Найти соперника»</p>
+      <p className="searching-title">{t.searching.title}</p>
+      <p className="searching-hint">{t.searching.hint}</p>
       <button className="button" disabled={busy} onClick={onCancel}>
-        Отмена
+        {t.searching.cancel}
       </button>
     </div>
   )

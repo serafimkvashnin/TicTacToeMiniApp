@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as gameClient from '../net/gameClient'
 import type { Game, Mark, Player, Room } from '../net/gameClient'
+import { t } from '../i18n'
 import { haptic, openTelegramUsername } from '../telegram'
 import { Board, MarkIcon } from './Board'
 import { EMOTES, popFrom, type EmoteId } from './emotes'
@@ -37,7 +38,7 @@ export function GameView({ room, game, busy, onMove, onRematch, onLeave }: Props
 
         {myMark && (
           <div className="you-play">
-            Вы играете за <MarkIcon mark={myMark} animate={false} />
+            {t.game.youPlayAs} <MarkIcon mark={myMark} animate={false} />
           </div>
         )}
 
@@ -45,18 +46,18 @@ export function GameView({ room, game, busy, onMove, onRematch, onLeave }: Props
 
         {isOver && (
           <button className="button primary" disabled={busy} onClick={onRematch}>
-            Ещё раз
+            {t.game.rematch}
           </button>
         )}
 
         {/* Код нужен только приватным комнатам: в остальные по коду не войти */}
-        {room.kind === 'Private' && <div className="room-code-small">Комната {room.code}</div>}
+        {room.kind === 'Private' && <div className="room-code-small">{t.game.roomCode(room.code)}</div>}
       </div>
 
       {/* Отдельными островками под полем, чтобы не нажать случайно во время игры */}
       <div className="game-actions">
         <button className="island-button leave-island" disabled={busy} onClick={onLeave}>
-          Выйти из комнаты
+          {t.game.leaveRoom}
         </button>
         <EmoteButton emote="impatient" seat={room.yourSeat} />
       </div>
@@ -71,7 +72,7 @@ export function GameView({ room, game, busy, onMove, onRematch, onLeave }: Props
 function OpponentCard({ player, seat }: { player: Player; seat: number }) {
   const content = (
     <>
-      <span className="opponent-caption">Соперник</span>
+      <span className="opponent-caption">{t.game.opponent}</span>
       <MarqueeText text={player.name} className="opponent-name" />
     </>
   )
@@ -89,7 +90,7 @@ function OpponentCard({ player, seat }: { player: Player; seat: number }) {
     <button
       className="panel opponent-card opponent-link"
       data-emote-seat={seat}
-      title={`Написать @${username}`}
+      title={t.game.writeTo(username)}
       onClick={() => {
         haptic.tap()
         openTelegramUsername(username)
@@ -111,7 +112,7 @@ function EmoteButton({ emote, seat }: { emote: EmoteId; seat: number }) {
     <button
       className="island-button emote-island"
       data-emote-seat={seat}
-      aria-label="Поторопить соперника"
+      aria-label={t.game.hurry}
       onClick={send}
     >
       {EMOTES[emote]}
@@ -133,9 +134,9 @@ function useEmotePops() {
 }
 
 function statusText(game: Game, myMark: Mark): string {
-  if (game.status === 'Draw') return 'Ничья'
-  if (game.status === 'Won') return game.winner === myMark ? 'Победа!' : 'Поражение'
-  return game.turn === myMark ? 'Ваш ход' : 'Ход соперника'
+  if (game.status === 'Draw') return t.game.draw
+  if (game.status === 'Won') return game.winner === myMark ? t.game.win : t.game.lose
+  return game.turn === myMark ? t.game.yourTurn : t.game.opponentTurn
 }
 
 /** Лёгкая вибрация на каждый ход и отдельный сигнал в конце партии */

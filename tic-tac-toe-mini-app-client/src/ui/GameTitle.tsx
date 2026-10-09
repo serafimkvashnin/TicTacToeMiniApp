@@ -1,9 +1,11 @@
+import { t } from '../i18n'
+
 /** Лого и название игры над главной плашкой */
 export function GameTitle() {
   return (
     <div className="game-title">
       <Logo />
-      <h1 className="game-title-text">Крестики-нолики</h1>
+      <h1 className="game-title-text">{t.title}</h1>
     </div>
   )
 }

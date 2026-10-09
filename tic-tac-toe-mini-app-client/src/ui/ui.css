@@ -191,8 +191,23 @@ body {
 .logo-mark line,
 circle.logo-mark {
   stroke-dasharray: 100;
-  animation: draw 0.3s ease-out both;
+  animation: logo-draw 0.3s ease-out both;
   animation-delay: inherit;
+}
+
+/* До начала прорисовки знак скрыт: скруглённый конец линии нулевой длины иначе виден точкой */
+@keyframes logo-draw {
+  from {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  1% {
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
 }
 
 .logo-win {

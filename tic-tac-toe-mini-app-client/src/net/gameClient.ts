@@ -1,4 +1,5 @@
 import * as signalR from '@microsoft/signalr'
+import { errorText, t } from '../i18n'
 import { getInitData } from '../telegram'
 
 export type Mark = 'X' | 'O'
@@ -85,7 +86,7 @@ function applyRoom(room: Room) {
   if (current && current.code === room.code && room.version < current.version) return
 
   const opponentLeft = current?.code === room.code && room.players.length < current.players.length
-  const leftNotice = room.kind === 'Public' ?'Соперник вышел — ищем нового' : 'Соперник покинул комнату'
+  const leftNotice = room.kind === 'Public' ? t.notices.opponentLeftSearching : t.notices.opponentLeft
   // Новый соперник зашёл — уведомление об ушедшем больше не актуально
   const notice = opponentLeft ? leftNotice : room.game ? null : state.notice
   setState({ room, notice })
@@ -178,8 +179,9 @@ export async function leaveRoom() {
   setState({ room: null, notice: null })
 }
 
-// SignalR оборачивает HubException в "...HubException: <сообщение>"
+// Сервер присылает код ошибки (room.notFound…), SignalR оборачивает его в "...HubException: <код>".
+// Текст на языке пользователя берём из словаря
 export function errorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error)
-  return message.split('HubException: ')[1] ?? 'Что-то пошло не так'
+  return errorText(message.split('HubException: ')[1]?.trim())
 }

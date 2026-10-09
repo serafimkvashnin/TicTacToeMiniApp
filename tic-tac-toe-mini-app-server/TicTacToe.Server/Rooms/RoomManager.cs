@@ -41,13 +41,13 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         {
             // По коду можно попасть только в приватную комнату: остальных как будто нет
             if (!_rooms.TryGetValue(code, out var room) || room.Kind != RoomKind.Private)
-                throw new RoomException("Комната не найдена");
+                throw new RoomException(ErrorCodes.RoomNotFound);
 
             if (!CanMatch(room, player))
-                throw new RoomException("Вы уже в этой комнате");
+                throw new RoomException(ErrorCodes.RoomAlreadyJoined);
 
             if (room.IsFull)
-                throw new RoomException("Комната уже заполнена");
+                throw new RoomException(ErrorCodes.RoomFull);
 
             AddPlayer(room, player);
             return room.Commit();
@@ -103,17 +103,17 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         {
             var room = RoomOf(connectionId);
             if (room.Game is null)
-                throw new RoomException("Игра ещё не началась");
+                throw new RoomException(ErrorCodes.GameNotStarted);
 
             var error = room.Game.Move(room.MarkOf(room.SeatOf(connectionId)), cell);
             if (error != MoveError.None)
             {
                 throw new RoomException(error switch
                 {
-                    MoveError.GameOver => "Партия уже закончилась",
-                    MoveError.NotYourTurn => "Сейчас ход соперника",
-                    MoveError.CellTaken => "Клетка уже занята",
-                    _ => "Недопустимый ход",
+                    MoveError.GameOver => ErrorCodes.MoveGameOver,
+                    MoveError.NotYourTurn => ErrorCodes.MoveNotYourTurn,
+                    MoveError.CellTaken => ErrorCodes.MoveCellTaken,
+                    _ => ErrorCodes.MoveInvalid,
                 });
             }
 
@@ -128,7 +128,7 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         {
             var room = RoomOf(connectionId);
             if (room.Game is null)
-                throw new RoomException("Нужен второй игрок");
+                throw new RoomException(ErrorCodes.NeedOpponent);
 
             // Если реванш уже запросил соперник, партия идёт — просто возвращаем состояние
             if (room.Game.Status == GameStatus.Playing)
@@ -232,7 +232,8 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
                 return RoomUpdate.Empty;
 
             var difficulty = _options.PickDisguisedDifficulty(random);
-            AddPlayer(room, CreateBot(BotNames.CreateUser(random), new BotProfile(difficulty, Disguised: true)));
+            var playerLanguage = room.Players[0].User.LanguageCode;
+            AddPlayer(room, CreateBot(BotNames.CreateUser(random, playerLanguage), new BotProfile(difficulty, Disguised: true)));
             return room.Commit();
         }
     }
@@ -338,7 +339,7 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
     private Room RoomOf(string connectionId) =>
         _roomByConnection.TryGetValue(connectionId, out var room)
             ? room
-            : throw new RoomException("Вы не в комнате");
+            : throw new RoomException(ErrorCodes.NotInRoom);
 
     private string GenerateCode()
     {

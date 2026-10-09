@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react'
+import { t } from '../i18n'
 
 type State = { failed: boolean }
 
@@ -19,10 +20,10 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     return (
       <div className="content">
         <div className="panel status">
-          <p className="searching-title">Что-то пошло не так</p>
-          <p className="searching-hint">Мы уже знаем об ошибке. Попробуйте перезапустить игру.</p>
+          <p className="searching-title">{t.crash.title}</p>
+          <p className="searching-hint">{t.crash.hint}</p>
           <button className="button primary" onClick={() => window.location.reload()}>
-            Перезапустить
+            {t.crash.restart}
           </button>
         </div>
       </div>

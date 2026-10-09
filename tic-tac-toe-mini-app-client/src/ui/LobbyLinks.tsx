@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { t } from '../i18n'
 import { haptic, openTelegramUsername } from '../telegram'
 
 const CHANNEL_USERNAME = 'NamingIssues'
@@ -11,14 +12,14 @@ export function LobbyLinks() {
   const tiles: ReactNode[] = []
 
   if (SHOW_LEADERBOARD) {
-    tiles.push(<Tile key="leaderboard" icon={<TrophyIcon />} label="Лидеры" onClick={() => {}} />)
+    tiles.push(<Tile key="leaderboard" icon={<TrophyIcon />} label={t.links.leaderboard} onClick={() => {}} />)
   }
 
   tiles.push(
     <Tile
       key="channel"
       icon={<TelegramIcon />}
-      label="Наш канал"
+      label={t.links.channel}
       onClick={() => openTelegramUsername(CHANNEL_USERNAME)}
     />,
   )

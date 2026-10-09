@@ -138,20 +138,20 @@ public sealed class GameHub(
     public async Task<string> PrepareInvite()
     {
         var code = rooms.InviteCodeFor(Context.ConnectionId)
-            ?? throw new HubException("Пригласить можно только в свою комнату, пока она ждёт соперника");
+            ?? throw new HubException(ErrorCodes.InviteNotAllowed);
 
         // Гости из режима разработки — не пользователи Telegram, им Bot API ничего не подготовит
         if (CurrentUser.Id <= 0)
-            throw new HubException("Приглашение доступно только в Telegram");
+            throw new HubException(ErrorCodes.InviteTelegramOnly);
 
         try
         {
-            return await botApi.PrepareRoomInviteAsync(CurrentUser.Id, code, Context.ConnectionAborted);
+            return await botApi.PrepareRoomInviteAsync(CurrentUser.Id, code, CurrentUser.LanguageCode, Context.ConnectionAborted);
         }
         catch (Exception e) when (e is TelegramApiException or HttpRequestException)
         {
             logger.LogError(e, "Failed to prepare invite to room {RoomCode} for user {UserId}", code, CurrentUser.Id);
-            throw new HubException("Не удалось подготовить приглашение");
+            throw new HubException(ErrorCodes.InviteFailed);
         }
     }
 
@@ -159,7 +159,7 @@ public sealed class GameHub(
     public async Task SendEmote(string emote)
     {
         if (!Emotes.All.Contains(emote))
-            throw new HubException("Неизвестный стикер");
+            throw new HubException(ErrorCodes.EmoteUnknown);
 
         if (!emoteLimiter.TryAcquire(Context.ConnectionId) || rooms.EmoteTargetsFor(Context.ConnectionId) is not { } targets)
             return;

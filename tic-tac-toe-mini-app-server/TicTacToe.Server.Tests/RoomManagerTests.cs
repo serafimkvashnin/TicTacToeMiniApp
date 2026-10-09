@@ -49,14 +49,14 @@ public class RoomManagerTests
         var manager = CreateManager();
         var code = manager.Create(Alice).For(Alice.ConnectionId).Code;
 
-        Assert.Equal("Комната не найдена", Assert.Throws<RoomException>(() => manager.Join("ZZZZZ", Bob)).Message);
-        Assert.Equal("Комната не найдена", Assert.Throws<RoomException>(() => manager.Join(null, Bob)).Message);
+        Assert.Equal(ErrorCodes.RoomNotFound, Assert.Throws<RoomException>(() => manager.Join("ZZZZZ", Bob)).Message);
+        Assert.Equal(ErrorCodes.RoomNotFound, Assert.Throws<RoomException>(() => manager.Join(null, Bob)).Message);
 
         var aliceAgain = Alice with { ConnectionId = "conn-alice-2" };
-        Assert.Equal("Вы уже в этой комнате", Assert.Throws<RoomException>(() => manager.Join(code, aliceAgain)).Message);
+        Assert.Equal(ErrorCodes.RoomAlreadyJoined, Assert.Throws<RoomException>(() => manager.Join(code, aliceAgain)).Message);
 
         manager.Join(code, Bob);
-        Assert.Equal("Комната уже заполнена", Assert.Throws<RoomException>(() => manager.Join(code, Carol)).Message);
+        Assert.Equal(ErrorCodes.RoomFull, Assert.Throws<RoomException>(() => manager.Join(code, Carol)).Message);
     }
 
     [Fact]
@@ -80,13 +80,13 @@ public class RoomManagerTests
     {
         var (manager, _, x, o) = StartGame();
 
-        Assert.Equal("Сейчас ход соперника", Assert.Throws<RoomException>(() => manager.MakeMove(o.ConnectionId, 0)).Message);
+        Assert.Equal(ErrorCodes.MoveNotYourTurn, Assert.Throws<RoomException>(() => manager.MakeMove(o.ConnectionId, 0)).Message);
 
         var update = manager.MakeMove(x.ConnectionId, 4);
         Assert.Equal(Mark.X, update.For(o.ConnectionId).Game!.Board[4]);
         Assert.Equal(Mark.O, update.For(o.ConnectionId).Game!.Turn);
 
-        Assert.Equal("Клетка уже занята", Assert.Throws<RoomException>(() => manager.MakeMove(o.ConnectionId, 4)).Message);
+        Assert.Equal(ErrorCodes.MoveCellTaken, Assert.Throws<RoomException>(() => manager.MakeMove(o.ConnectionId, 4)).Message);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class RoomManagerTests
         Assert.Null(afterLeave.Game);
         Assert.Single(afterLeave.Players);
         Assert.True(afterLeave.Players[0].IsHost);
-        Assert.Equal("Игра ещё не началась", Assert.Throws<RoomException>(() => manager.MakeMove(o.ConnectionId, 1)).Message);
+        Assert.Equal(ErrorCodes.GameNotStarted, Assert.Throws<RoomException>(() => manager.MakeMove(o.ConnectionId, 1)).Message);
 
         var withCarol = manager.Join(code, Carol).For(Carol.ConnectionId);
         Assert.NotNull(withCarol.Game);
@@ -159,7 +159,7 @@ public class RoomManagerTests
         var manager = CreateManager();
         var code = manager.QuickPlay(Alice).For(Alice.ConnectionId).Code;
 
-        Assert.Equal("Комната не найдена", Assert.Throws<RoomException>(() => manager.Join(code, Bob)).Message);
+        Assert.Equal(ErrorCodes.RoomNotFound, Assert.Throws<RoomException>(() => manager.Join(code, Bob)).Message);
 
         // И после ухода соперника тоже: освободившееся место достаётся только через подбор
         manager.QuickPlay(Bob);

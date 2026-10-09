@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { t } from '../i18n'
 import type { BotDifficulty } from '../net/gameClient'
 
 type Props = {
@@ -9,11 +10,7 @@ type Props = {
   onJoin: (code: string) => void
 }
 
-const DIFFICULTIES: { value: BotDifficulty; label: string }[] = [
-  { value: 'Easy', label: 'Лёгкий' },
-  { value: 'Medium', label: 'Средний' },
-  { value: 'Hard', label: 'Сложный' },
-]
+const DIFFICULTIES: BotDifficulty[] = ['Easy', 'Medium', 'Hard']
 
 export function Lobby({ busy, onQuickPlay, onPlayBot, onCreate, onJoin }: Props) {
   const [code, setCode] = useState('')
@@ -27,16 +24,16 @@ export function Lobby({ busy, onQuickPlay, onPlayBot, onCreate, onJoin }: Props)
   if (choosingBot) {
     return (
       <div className="panel">
-        <div className="divider">Сложность бота</div>
+        <div className="divider">{t.lobby.botDifficulty}</div>
 
-        {DIFFICULTIES.map(({ value, label }) => (
-          <button key={value} className="button primary" disabled={busy} onClick={() => onPlayBot(value)}>
-            {label}
+        {DIFFICULTIES.map((difficulty) => (
+          <button key={difficulty} className="button primary" disabled={busy} onClick={() => onPlayBot(difficulty)}>
+            {t.lobby.difficulty[difficulty]}
           </button>
         ))}
 
         <button className="button" disabled={busy} onClick={() => setChoosingBot(false)}>
-          Назад
+          {t.lobby.back}
         </button>
       </div>
     )
@@ -45,23 +42,23 @@ export function Lobby({ busy, onQuickPlay, onPlayBot, onCreate, onJoin }: Props)
   return (
     <div className="panel">
       <button className="button primary" disabled={busy} onClick={onQuickPlay}>
-        Найти соперника
+        {t.lobby.findOpponent}
       </button>
 
       <button className="button" disabled={busy} onClick={() => setChoosingBot(true)}>
-        Играть с ботом
+        {t.lobby.playBot}
       </button>
 
-      <div className="divider">или сыграть с другом</div>
+      <div className="divider">{t.lobby.orWithFriend}</div>
 
       <button className="button" disabled={busy} onClick={onCreate}>
-        Создать комнату
+        {t.lobby.createRoom}
       </button>
 
       <form className="join-form" onSubmit={submit}>
         <input
           className="input"
-          placeholder="Код комнаты"
+          placeholder={t.lobby.roomCodePlaceholder}
           value={code}
           maxLength={5}
           autoCapitalize="characters"
@@ -69,7 +66,7 @@ export function Lobby({ busy, onQuickPlay, onPlayBot, onCreate, onJoin }: Props)
           onChange={(e) => setCode(e.target.value.toUpperCase())}
         />
         <button className="button" type="submit" disabled={busy || !code.trim()}>
-          Войти
+          {t.lobby.join}
         </button>
       </form>
     </div>

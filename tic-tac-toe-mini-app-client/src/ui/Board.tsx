@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { Game, Mark } from '../net/gameClient'
 
 type Props = {
@@ -16,7 +17,7 @@ export function Board({ game, canPlay, waiting, onMove }: Props) {
           key={cell}
           className={`cell ${game.winningLine?.includes(cell) ? 'winning' : ''}`}
           disabled={!canPlay || mark !== null}
-          aria-label={mark ?? `Клетка ${cell + 1}`}
+          aria-label={mark ?? t.game.cell(cell + 1)}
           onClick={() => onMove(cell)}
         >
           {mark && <MarkIcon mark={mark} />}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { t } from '../i18n'
 import * as game from '../net/gameClient'
 import { getStartParam } from '../telegram'
 import { GameTitle } from './GameTitle'
@@ -63,13 +64,13 @@ export function Screens() {
     <>
       {inMenu && <GameTitle />}
 
-      {status === 'connecting' && <div className="panel status">Подключение…</div>}
+      {status === 'connecting' && <div className="panel status">{t.connection.connecting}</div>}
 
       {status === 'disconnected' && (
         <div className="panel status">
-          <p>Нет соединения с сервером</p>
+          <p>{t.connection.lost}</p>
           <button className="button primary" onClick={() => game.connect()}>
-            Повторить
+            {t.connection.retry}
           </button>
         </div>
       )}

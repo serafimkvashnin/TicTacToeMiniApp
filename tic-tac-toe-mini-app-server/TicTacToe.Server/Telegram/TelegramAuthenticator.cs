@@ -70,13 +70,16 @@ public sealed class TelegramAuthenticator(
             return null;
 
         var user = JsonSerializer.Deserialize<UserPayload>(userJson.ToString());
-        return user is null ? null : new TelegramUser(user.Id, user.FirstName, user.LastName, user.Username);
+        return user is null
+            ? null
+            : new TelegramUser(user.Id, user.FirstName, user.LastName, user.Username, user.LanguageCode);
     }
 
+    // Гость бывает только при локальной разработке в обычном браузере
     private static TelegramUser CreateGuest()
     {
         var number = RandomNumberGenerator.GetInt32(1000, 10000);
-        return new TelegramUser(-number, $"Гость {number}", null, null);
+        return new TelegramUser(-number, $"Guest {number}", null, null);
     }
 
     private static bool IsSha256Hex(string value) =>
@@ -86,5 +89,6 @@ public sealed class TelegramAuthenticator(
         [property: JsonPropertyName("id")] long Id,
         [property: JsonPropertyName("first_name")] string FirstName,
         [property: JsonPropertyName("last_name")] string? LastName,
-        [property: JsonPropertyName("username")] string? Username);
+        [property: JsonPropertyName("username")] string? Username,
+        [property: JsonPropertyName("language_code")] string? LanguageCode);
 }

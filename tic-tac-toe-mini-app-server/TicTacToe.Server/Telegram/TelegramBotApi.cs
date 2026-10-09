@@ -15,9 +15,15 @@ public sealed class TelegramBotApi(HttpClient http, IOptions<TelegramOptions> op
     /// Готовит карточку-приглашение в комнату, которой игрок поделится через shareMessage.
     /// </summary>
     /// <returns>id подготовленного сообщения для Telegram.WebApp.shareMessage.</returns>
-    public async Task<string> PrepareRoomInviteAsync(long userId, string roomCode, CancellationToken cancellationToken)
+    /// <param name="languageCode">Язык приглашающего: карточку увидят его собеседники, пишем на его языке.</param>
+    public async Task<string> PrepareRoomInviteAsync(
+        long userId, string roomCode, string? languageCode, CancellationToken cancellationToken)
     {
         var invite = _options.Invite;
+        var (caption, button) = Languages.IsRussianSpeaking(languageCode)
+            ? ($"Крестики-нолики ✕⭘ Сыграем?\nЗаходи ко мне в комнату {roomCode} 🎮", "▶️ Присоединиться")
+            : ($"Tic-Tac-Toe ✕⭘ Up for a game?\nJoin my room {roomCode} 🎮", "▶️ Join");
+
         var result = new
         {
             type = "mpeg4_gif",
@@ -27,12 +33,12 @@ public sealed class TelegramBotApi(HttpClient http, IOptions<TelegramOptions> op
             mpeg4_height = 360,
             thumbnail_url = invite.ThumbnailUrl,
             thumbnail_mime_type = "image/jpeg",
-            caption = $"Крестики-нолики ✕⭘ Сыграем?\nЗаходи ко мне в комнату {roomCode} 🎮",
+            caption,
             reply_markup = new
             {
                 inline_keyboard = new[]
                 {
-                    new[] { new { text = "▶️ Присоединиться", url = $"{invite.AppUrl}?startapp={roomCode}" } },
+                    new[] { new { text = button, url = $"{invite.AppUrl}?startapp={roomCode}" } },
                 },
             },
         };

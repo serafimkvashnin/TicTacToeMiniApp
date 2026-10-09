@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '../i18n'
 import { prepareInvite, type Room } from '../net/gameClient'
 import { shareLink, shareMessage, supportsShareMessage } from '../telegram'
 
@@ -29,12 +30,12 @@ export function RoomView({ room, busy, onLeave }: Props) {
         setPreparing(false)
       }
     }
-    shareLink(`${BOT_APP_URL}?startapp=${room.code}`, 'Сыграем в крестики-нолики?')
+    shareLink(`${BOT_APP_URL}?startapp=${room.code}`, t.room.inviteText)
   }
 
   return (
     <div className="panel">
-      <div className="room-code-label">Код комнаты</div>
+      <div className="room-code-label">{t.room.codeLabel}</div>
       <div className="room-code">{room.code}</div>
 
       <ul className="players">
@@ -43,12 +44,12 @@ export function RoomView({ room, busy, onLeave }: Props) {
           <li key={seat} className="player">
             <span className="player-name">{player.name}</span>
             {player.username && <span className="player-username">@{player.username}</span>}
-            {player.isHost && <span className="badge">хост</span>}
+            {player.isHost && <span className="badge">{t.room.host}</span>}
           </li>
         ))}
         {Array.from({ length: emptySlots }, (_, i) => (
           <li key={`empty-${i}`} className="player empty">
-            Ожидание соперника…
+            {t.room.waiting}
           </li>
         ))}
       </ul>
@@ -57,11 +58,11 @@ export function RoomView({ room, busy, onLeave }: Props) {
       <div className="button-row">
         {BOT_APP_URL && (
           <button className="button primary" disabled={preparing} onClick={invite}>
-            Пригласить
+            {t.room.invite}
           </button>
         )}
         <button className="button" disabled={busy} onClick={onLeave}>
-          Выйти
+          {t.room.leave}
         </button>
       </div>
     </div>
