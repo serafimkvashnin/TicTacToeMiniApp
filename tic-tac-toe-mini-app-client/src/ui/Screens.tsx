@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import * as game from '../net/gameClient'
 import { getStartParam } from '../telegram'
+import { GameTitle } from './GameTitle'
 import { GameView } from './GameView'
 import { Lobby } from './Lobby'
+import { LobbyLinks } from './LobbyLinks'
 import { RoomView } from './RoomView'
 import { SearchingView } from './SearchingView'
 
@@ -54,8 +56,13 @@ export function Screens() {
 
   const leave = () => run(game.leaveRoom)
 
+  // Лого и ссылки — на всех экранах меню; в партии место нужно полю
+  const inMenu = !(status === 'connected' && room?.game)
+
   return (
     <>
+      {inMenu && <GameTitle />}
+
       {status === 'connecting' && <div className="panel status">Подключение…</div>}
 
       {status === 'disconnected' && (
@@ -95,6 +102,8 @@ export function Screens() {
           onLeave={leave}
         />
       )}
+
+      {inMenu && <LobbyLinks />}
 
       {notice && <div className="toast">{notice}</div>}
       {error && <div className="toast error">{error}</div>}

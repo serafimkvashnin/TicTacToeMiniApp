@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import type { BotDifficulty } from '../net/gameClient'
-import { LobbyLinks } from './LobbyLinks'
 
 type Props = {
   busy: boolean
@@ -28,8 +27,7 @@ export function Lobby({ busy, onQuickPlay, onPlayBot, onCreate, onJoin }: Props)
   if (choosingBot) {
     return (
       <div className="panel">
-        <h2>Игра с ботом</h2>
-        <div className="divider">Выберите сложность</div>
+        <div className="divider">Сложность бота</div>
 
         {DIFFICULTIES.map(({ value, label }) => (
           <button key={value} className="button primary" disabled={busy} onClick={() => onPlayBot(value)}>
@@ -45,41 +43,35 @@ export function Lobby({ busy, onQuickPlay, onPlayBot, onCreate, onJoin }: Props)
   }
 
   return (
-    <>
-      <div className="panel">
-        <h2>Крестики-нолики</h2>
+    <div className="panel">
+      <button className="button primary" disabled={busy} onClick={onQuickPlay}>
+        Найти соперника
+      </button>
 
-        <button className="button primary" disabled={busy} onClick={onQuickPlay}>
-          Найти соперника
+      <button className="button" disabled={busy} onClick={() => setChoosingBot(true)}>
+        Играть с ботом
+      </button>
+
+      <div className="divider">или сыграть с другом</div>
+
+      <button className="button" disabled={busy} onClick={onCreate}>
+        Создать комнату
+      </button>
+
+      <form className="join-form" onSubmit={submit}>
+        <input
+          className="input"
+          placeholder="Код комнаты"
+          value={code}
+          maxLength={5}
+          autoCapitalize="characters"
+          autoComplete="off"
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+        />
+        <button className="button" type="submit" disabled={busy || !code.trim()}>
+          Войти
         </button>
-
-        <button className="button" disabled={busy} onClick={() => setChoosingBot(true)}>
-          Играть с ботом
-        </button>
-
-        <div className="divider">или сыграть с другом</div>
-
-        <button className="button" disabled={busy} onClick={onCreate}>
-          Создать комнату
-        </button>
-
-        <form className="join-form" onSubmit={submit}>
-          <input
-            className="input"
-            placeholder="Код комнаты"
-            value={code}
-            maxLength={5}
-            autoCapitalize="characters"
-            autoComplete="off"
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-          />
-          <button className="button" type="submit" disabled={busy || !code.trim()}>
-            Войти
-          </button>
-        </form>
-      </div>
-
-      <LobbyLinks />
-    </>
+      </form>
+    </div>
   )
 }

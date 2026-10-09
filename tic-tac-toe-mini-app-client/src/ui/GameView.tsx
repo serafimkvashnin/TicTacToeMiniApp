@@ -27,60 +27,58 @@ export function GameView({ room, game, busy, onMove, onRematch, onLeave }: Props
   useEmotePops()
 
   return (
-    <div className="panel game">
-      <div className="scoreboard">
-        <div className={`side side-me ${!isOver && isMyTurn ? 'active' : ''}`} data-seat={room.yourSeat}>
-          {myMark && <MarkIcon mark={myMark} animate={false} />}
-          <span className="side-you">Вы</span>
+    <>
+      {opponent && <OpponentCard player={opponent} seat={opponentSeat} />}
+
+      <div className="panel game">
+        <div className={`game-status ${game.status === 'Won' ? (game.winner === myMark ? 'win' : 'lose') : ''}`}>
+          {statusText(game, myMark)}
         </div>
 
-        {opponent && (
-          <OpponentSide
-            player={opponent}
-            seat={opponentSeat}
-            active={!isOver && !isMyTurn}
-          />
+        {myMark && (
+          <div className="you-play">
+            Вы играете за <MarkIcon mark={myMark} animate={false} />
+          </div>
         )}
+
+        <Board game={game} canPlay={isMyTurn && !busy} waiting={!isOver && !isMyTurn} onMove={onMove} />
+
+        {isOver && (
+          <button className="button primary" disabled={busy} onClick={onRematch}>
+            Ещё раз
+          </button>
+        )}
+
+        {/* Код нужен только приватным комнатам: в остальные по коду не войти */}
+        {room.kind === 'Private' && <div className="room-code-small">Комната {room.code}</div>}
       </div>
 
-      <div className={`game-status ${game.status === 'Won' ? (game.winner === myMark ? 'win' : 'lose') : ''}`}>
-        {statusText(game, myMark)}
-      </div>
-
-      <Board game={game} canPlay={isMyTurn && !busy} waiting={!isOver && !isMyTurn} onMove={onMove} />
-
-      {isOver && (
-        <button className="button primary" disabled={busy} onClick={onRematch}>
-          Ещё раз
-        </button>
-      )}
-
+      {/* Отдельными островками под полем, чтобы не нажать случайно во время игры */}
       <div className="game-actions">
-        <button className="button leave-button" disabled={busy} onClick={onLeave}>
+        <button className="island-button leave-island" disabled={busy} onClick={onLeave}>
           Выйти из комнаты
         </button>
-        <EmoteButton emote="impatient" />
+        <EmoteButton emote="impatient" seat={room.yourSeat} />
       </div>
-
-      {/* Код нужен только приватным комнатам: в остальные по коду не войти */}
-      {room.kind === 'Private' && <div className="room-code-small">Комната {room.code}</div>}
-    </div>
+    </>
   )
 }
 
-/** Плашка соперника справа: ник прижат к правому краю, знак правее ника; с @username — ссылка на чат */
-function OpponentSide({ player, seat, active }: { player: Player; seat: number; active: boolean }) {
+/**
+ * Карточка соперника над полем. С публичным @username имя синее, как ссылка, и открывает чат;
+ * без него (или у бота) — обычный текст.
+ */
+function OpponentCard({ player, seat }: { player: Player; seat: number }) {
   const content = (
     <>
-      <MarqueeText text={player.name} className="side-name" />
-      {player.mark && <MarkIcon mark={player.mark} animate={false} />}
+      <span className="opponent-caption">Соперник</span>
+      <MarqueeText text={player.name} className="opponent-name" />
     </>
   )
-  const className = `side side-opponent ${active ? 'active' : ''}`
 
   if (!player.username) {
     return (
-      <div className={className} data-seat={seat}>
+      <div className="panel opponent-card" data-emote-seat={seat}>
         {content}
       </div>
     )
@@ -89,8 +87,8 @@ function OpponentSide({ player, seat, active }: { player: Player; seat: number; 
   const username = player.username
   return (
     <button
-      className={`${className} side-link`}
-      data-seat={seat}
+      className="panel opponent-card opponent-link"
+      data-emote-seat={seat}
       title={`Написать @${username}`}
       onClick={() => openTelegramUsername(username)}
     >
@@ -99,27 +97,33 @@ function OpponentSide({ player, seat, active }: { player: Player; seat: number; 
   )
 }
 
-function EmoteButton({ emote }: { emote: EmoteId }) {
+/** Свои стикеры вылетают прямо из этой кнопки — под пальцем */
+function EmoteButton({ emote, seat }: { emote: EmoteId; seat: number }) {
   const send = () => {
     haptic.tap()
     gameClient.sendEmote(emote).catch(() => {})
   }
 
   return (
-    <button className="button emote-button" aria-label="Поторопить соперника" onClick={send}>
+    <button
+      className="island-button emote-island"
+      data-emote-seat={seat}
+      aria-label="Поторопить соперника"
+      onClick={send}
+    >
       {EMOTES[emote]}
     </button>
   )
 }
 
-/** Стикер вылетает из плашки того, кто его отправил */
+/** Стикер вылетает из элемента отправителя: у соперника — его карточка, у нас — кнопка стикера */
 function useEmotePops() {
   useEffect(
     () =>
       gameClient.onEmote((seat, emote) => {
         if (!(emote in EMOTES)) return
-        const side = document.querySelector(`.side[data-seat="${seat}"]`)
-        if (side) popFrom(side, emote as EmoteId)
+        const origin = document.querySelector(`[data-emote-seat="${seat}"]`)
+        if (origin) popFrom(origin, emote as EmoteId)
       }),
     [],
   )

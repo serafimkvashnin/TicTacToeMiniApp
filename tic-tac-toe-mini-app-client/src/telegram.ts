@@ -1,11 +1,5 @@
 export const tg = window.Telegram?.WebApp
 
-export function getUserName(): string {
-  const user = tg?.initDataUnsafe?.user
-  if (!user) return 'Гость'
-  return user.username ? `@${user.username}` : user.first_name
-}
-
 // Подписанная строка initData — сервер проверяет её токеном бота
 export function getInitData(): string {
   return tg?.initData ?? ''

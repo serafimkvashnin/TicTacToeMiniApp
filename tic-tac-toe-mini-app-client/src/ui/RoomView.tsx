@@ -36,15 +36,17 @@ export function RoomView({ room, busy, onLeave }: Props) {
         ))}
       </ul>
 
-      {BOT_APP_URL && (
-        <button className="button primary" onClick={invite}>
-          Пригласить
+      {/* В один ряд, чтобы плашка была той же высоты, что и в остальных разделах меню */}
+      <div className="button-row">
+        {BOT_APP_URL && (
+          <button className="button primary" onClick={invite}>
+            Пригласить
+          </button>
+        )}
+        <button className="button" disabled={busy} onClick={onLeave}>
+          Выйти
         </button>
-      )}
-
-      <button className="button" disabled={busy} onClick={onLeave}>
-        Выйти из комнаты
-      </button>
+      </div>
     </div>
   )
 }
