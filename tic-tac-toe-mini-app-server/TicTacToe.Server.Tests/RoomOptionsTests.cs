@@ -62,7 +62,6 @@ public class RoomOptionsTests
             Assert.True(range.Max >= range.Min);
         }
         Assert.InRange(options.BotLeaveChance, 0, 1);
-        Assert.InRange(options.BotMidGameLeaveChance, 0, 1);
         Assert.Equal(new[] { BotDifficulty.Medium, BotDifficulty.Hard }, options.DisguisedBotDifficulties);
     }
 

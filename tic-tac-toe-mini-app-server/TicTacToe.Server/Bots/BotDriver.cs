@@ -42,7 +42,7 @@ public sealed class BotDriver(
 
                 case BotMoveTask move:
                     await Task.Delay(_options.BotMoveDelay.Pick(random));
-                    update = rooms.TryBotMove(move, random, leave: random.NextDouble() < _options.BotMidGameLeaveChance);
+                    update = rooms.TryBotMove(move, random);
                     break;
 
                 case BotAfterGameTask afterGame:

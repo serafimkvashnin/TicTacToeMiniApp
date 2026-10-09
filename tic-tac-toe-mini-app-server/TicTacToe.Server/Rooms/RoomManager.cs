@@ -181,23 +181,15 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
-    /// <param name="leave">
-    /// Замаскированный бот уходит вместо ответа на ход игрока, как бросивший партию человек.
-    /// Явный бот и бот, которому ещё не на что отвечать, всё равно ходят.
-    /// </param>
-    public RoomUpdate TryBotMove(BotMoveTask task, Random random, bool leave = false)
+    public RoomUpdate TryBotMove(BotMoveTask task, Random random)
     {
         lock (_lock)
         {
             if (!_rooms.TryGetValue(task.Code, out var room) || room.Version != task.Version)
                 return RoomUpdate.Empty;
 
-            if (room.PlayerToMove is not { Bot: { } bot } botPlayer || room.Game is not { } game)
+            if (room.PlayerToMove is not { Bot: { } bot } || room.Game is not { } game)
                 return RoomUpdate.Empty;
-
-            var opponentMoved = game.Board.Any(c => c == TicTacToeGame.Opponent(game.Turn));
-            if (leave && bot.Disguised && opponentMoved)
-                return RemovePlayer(room, botPlayer.ConnectionId);
 
             game.Move(game.Turn, TicTacToeAi.ChooseMove(game.Board, game.Turn, bot.Difficulty, random));
             return room.Commit();
