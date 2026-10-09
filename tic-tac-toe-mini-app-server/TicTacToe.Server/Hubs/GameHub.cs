@@ -27,9 +27,6 @@ public sealed class GameHub(
     private const string ClientErrorCountKey = "clientErrors";
     private const int MaxClientErrorsPerConnection = 20;
 
-    /// <summary>Какие стикеры можно отправлять; картинку для каждого рисует клиент.</summary>
-    private static readonly HashSet<string> AllowedEmotes = ["impatient"];
-
     private TelegramUser CurrentUser => (TelegramUser)Context.Items[UserKey]!;
 
     private Player CurrentPlayer => new(Context.ConnectionId, CurrentUser);
@@ -135,7 +132,7 @@ public sealed class GameHub(
     /// <summary>Стикер видят оба игрока: он вылетает из плашки отправителя. Слишком частые молча отбрасываются.</summary>
     public async Task SendEmote(string emote)
     {
-        if (!AllowedEmotes.Contains(emote))
+        if (!Emotes.All.Contains(emote))
             throw new HubException("Неизвестный стикер");
 
         if (!emoteLimiter.TryAcquire(Context.ConnectionId) || rooms.EmoteTargetsFor(Context.ConnectionId) is not { } targets)

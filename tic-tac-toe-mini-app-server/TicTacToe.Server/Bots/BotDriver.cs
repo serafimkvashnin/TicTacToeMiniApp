@@ -20,10 +20,40 @@ public sealed class BotDriver(
 
     public void OnRoomChanged(string? code)
     {
-        if (code is null || rooms.NextBotTask(code) is not { } task)
+        if (code is null)
             return;
 
-        _ = RunAsync(task);
+        if (rooms.NextBotTask(code) is { } task)
+            _ = RunAsync(task);
+
+        // Независимо от основной задачи: пока игрок думает, бот может его поторапливать
+        if (_options.BotEmoteChance > 0 && rooms.NextBotEmoteTask(code) is { } emote)
+            _ = NagAsync(emote);
+    }
+
+    /// <summary>
+    /// Игрок думает над ходом: после паузы бот время от времени кидает стикер.
+    /// Цикл заканчивается сам, как только игрок сходил, вышел или бот ушёл.
+    /// </summary>
+    private async Task NagAsync(BotEmoteTask task)
+    {
+        try
+        {
+            var random = Random.Shared;
+            await Task.Delay(_options.BotEmoteIdleDelay.Pick(random));
+
+            while (rooms.BotEmoteTargets(task) is { } targets)
+            {
+                if (random.NextDouble() < _options.BotEmoteChance)
+                    await hub.Clients.Clients(targets.Recipients).Emote(targets.Seat, Emotes.Impatient);
+
+                await Task.Delay(_options.BotEmoteInterval.Pick(random));
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Bot emote task {Task} failed", task);
+        }
     }
 
     private async Task RunAsync(BotTask task)

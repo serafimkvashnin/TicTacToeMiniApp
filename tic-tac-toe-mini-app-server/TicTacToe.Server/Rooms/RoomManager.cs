@@ -181,6 +181,34 @@ public sealed class RoomManager(IOptions<RoomOptions> options)
         }
     }
 
+    /// <summary>Ход живого игрока против бота — бот может торопить его стикерами; иначе null.</summary>
+    public BotEmoteTask? NextBotEmoteTask(string code)
+    {
+        lock (_lock)
+        {
+            return _rooms.TryGetValue(code, out var room) && IsHumanThinkingAgainstBot(room)
+                ? new BotEmoteTask(code, room.Version)
+                : null;
+        }
+    }
+
+    /// <summary>Кому показать стикер бота — или null, если игрок уже сходил или партия изменилась.</summary>
+    public EmoteTargets? BotEmoteTargets(BotEmoteTask task)
+    {
+        lock (_lock)
+        {
+            if (!_rooms.TryGetValue(task.Code, out var room) || room.Version != task.Version || !IsHumanThinkingAgainstBot(room))
+                return null;
+
+            var botSeat = room.Players.FindIndex(p => p.IsBot);
+            var recipients = room.Players.Where(p => !p.IsBot).Select(p => p.ConnectionId).ToList();
+            return new EmoteTargets(botSeat, recipients);
+        }
+    }
+
+    private static bool IsHumanThinkingAgainstBot(Room room) =>
+        room.PlayerToMove is { IsBot: false } && room.Players.Any(p => p.IsBot);
+
     /// <summary>Подсаживает замаскированного бота, если игрок всё ещё ждёт с того же момента.</summary>
     public RoomUpdate TryFillWithBot(FillWithBotTask task, Random random)
     {

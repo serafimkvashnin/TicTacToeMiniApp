@@ -25,6 +25,15 @@ public sealed class RoomOptions
     /// <summary>Сколько замаскированный бот ждёт хода бездействующего игрока, прежде чем уйти.</summary>
     public TimeRange BotIdleTimeout { get; set; } = TimeRange.Seconds(20, 40);
 
+    /// <summary>Сколько игрок может думать над ходом, прежде чем бот начнёт его торопить стикерами.</summary>
+    public TimeRange BotEmoteIdleDelay { get; set; } = TimeRange.Seconds(8, 12);
+
+    /// <summary>Как часто бот решает, кинуть ли стикер, пока игрок продолжает думать.</summary>
+    public TimeRange BotEmoteInterval { get; set; } = TimeRange.Seconds(2, 3);
+
+    /// <summary>Вероятность (0–1) кинуть стикер при каждой такой проверке. 0 — боты стикеры не кидают.</summary>
+    public double BotEmoteChance { get; set; } = 0.9;
+
     /// <summary>Вероятность (0–1), что замаскированный бот уйдёт после партии, а не сыграет ещё.</summary>
     public double BotLeaveChance { get; set; } = 0.5;
 
